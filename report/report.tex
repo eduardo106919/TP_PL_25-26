@@ -1,0 +1,190 @@
+\documentclass[11pt, a4paper, fleqn]{article}
+
+\usepackage[portuguese]{babel}
+\usepackage{graphicx}
+\usepackage{leading}
+\usepackage{tabularx}
+\usepackage{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{array}
+
+%----------------- font -------------------------------------------------------%
+\usepackage[T1]{fontenc}
+\usepackage{paratype}
+\usepackage[basic, italic]{mathastext}
+
+%----------------- titles formats ---------------------------------------------%
+\usepackage{titlesec}
+\titleformat{\part}
+{\LARGE\bfseries}{\thepart}{1em}{}
+\titleformat{\section}
+{\LARGE\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+{\Large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\paragraph}[runin]
+{\sffamily\bfseries}
+{}
+{0pt}
+{}
+
+%----------------- footnote format --------------------------------------------%
+\usepackage[perpage, bottom, marginal]{footmisc}
+\makeatletter
+\renewcommand{\@makefnmark}{\hbox{\textsuperscript{\sffamily\@thefnmark}}}
+\makeatother
+\renewcommand*{\footnotelayout}{\footnotesize\sffamily}
+
+%----------------- page number format -----------------------------------------%
+\usepackage{fancyhdr}
+\fancypagestyle{pagestyle}{%
+	\fancyhf{} % clear all header and footer fields
+	\fancyfoot[C]{\makebox[\textwidth]{\sffamily\normalsize\thepage}} % centered footer
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{0pt}
+}
+
+%----------------- verbatim ---------------------------------------------------%
+\usepackage{fancyvrb}
+
+
+%----------------- bibliography ----------------------------------------------%
+\usepackage[
+backend=biber,
+style=ieee,        % alternativas: numeric, alphabetic, authoryear
+sorting=none
+]{biblatex}
+
+\addbibresource{refs.bib}
+
+%----------------- annexes ---------------------------------------------------%
+\usepackage{appendix}
+
+\begin{document}
+\sffamily
+\setlength{\parindent}{0em}
+\emergencystretch 3em
+\renewcommand{\baselinestretch}{1.25} 
+
+\begin{titlepage}
+\includegraphics[width=26mm]{imgs/UM.jpg}\includegraphics[width=26mm]{imgs/EE.jpg}
+
+\vspace{7mm}
+\leading{17pt}
+{\Large
+	\textbf{Universidade do Minho}
+	\\
+	{\fontseries{l}\selectfont
+		Escola de Engenharia
+}}
+
+\vspace{50mm}
+\leading{27pt}
+{\huge
+	\textbf{Unidade Curricular}
+	\\
+	Título do trabalho prático
+}
+\\
+%
+\\
+{\LARGE
+	Licenciatura em Engenharia Informática
+	\\
+	Ano Letivo XXXX/XXXX}
+
+\vspace{22mm}
+\leading{15pt}
+{\Large
+	\begin{tabularx}{\textwidth}{@{}p{20mm} X}
+		\multicolumn{2}{@{}l}{\textbf{Grupo XX}} \\
+		\multicolumn{2}{@{}l}{} \\
+		XXXXXX & Aluno 1 \\
+		XXXXXX & Aluno 2 \\ 
+		XXXXXX & Aluno 3 \\
+		XXXXXX & Aluno 4 \\
+	\end{tabularx}
+}
+
+\vspace*{\fill}
+\end{titlepage}
+
+\newgeometry{left=25mm,right=20mm,top=25mm,bottom=25mm}
+\setlength{\parindent}{1em}
+
+\tableofcontents
+
+\newpage
+
+
+\section{Introdução}
+
+Fazer uma introdução do trabalho prático.
+
+\newpage
+
+\section{Sugestões}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Descrição da tabela}
+	
+	\newcolumntype{Y}{>{\centering\arraybackslash}X}
+	
+	\begin{tabularx}{\textwidth}{l Y r}
+		\toprule
+		\textbf{Coluna 1} & \textbf{Coluna 3} & \textbf{Coluna 3} \\
+		\midrule
+		bla bla bla & bla bla bla & bla bla bla \\
+		bla bla bla & bla bla bla & bla bla bla \\
+		bla bla bla & bla bla bla & bla bla bla \\
+		bla bla bla & bla bla bla & bla bla bla \\
+		\bottomrule
+	\end{tabularx}
+	
+\end{table}
+
+
+\begin{figure}[h]
+ 	\centering
+	\fbox{\includegraphics[width=0.3\textwidth]{imgs/UM.jpg}}
+	\caption{Descrição da imagem}
+	\label{fig:exemplo}
+\end{figure}
+
+
+Como discutido em \cite{knuth1984texbook}, ...
+
+\newpage
+
+
+\section{Conclusão}
+
+Conclusão do trabalho prático,reflexão critica e trabalho futuro.
+
+
+\newpage
+
+\newpage
+\addcontentsline{toc}{section}{Referências}
+\printbibliography
+
+
+\newpage
+
+\section*{Anexos}
+\addcontentsline{toc}{section}{Anexos}
+
+
+\begin{appendices}
+	\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+	
+	\section{Primeiro anexo}
+	Texto do anexo (tabelas grandes, prints, logs, etc.)
+	
+	\section{Segundo Anexo}
+	...
+\end{appendices}
+
+
+\end{document}
