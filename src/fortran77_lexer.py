@@ -2,7 +2,10 @@ import ply.lex as lex
 import sys
 import re
 
+states = (("FIXED", "exclusive"),)
+
 tokens = (
+    "LABEL",
     "PROGRAM",
     "FUNCTION",
     "SUBROUTINE",
@@ -41,6 +44,35 @@ tokens = (
 )
 
 literals = "(),=+-*/"
+
+
+def t_FIXED_comment(t):
+    # ignore comments
+    r"[Cc\*][^\n]*"
+
+
+def t_FIXED_LABEL(t):
+    r"[ \t]*\d{1,5}"
+    t.value = int(t.value.strip())
+    t.lexer.begin("INITIAL")
+    return t
+
+
+def t_FIXED_nolabel(t):
+    r"[ \t]+"
+    t.lexer.begin("INITIAL")
+
+
+def t_FIXED_newline(t):
+    r"\n"
+    t.lexer.lineno += 1
+
+
+def t_FIXED_error(t):
+    t.lexer.skip(1)
+
+
+t_FIXED_ignore = r""
 
 
 def t_PROGRAM(t):
@@ -238,6 +270,7 @@ t_ignore = " \t"
 def t_newline(t):
     r"\n"
     t.lexer.lineno += 1
+    t.lexer.begin("FIXED")
 
 
 def t_error(t):
@@ -247,6 +280,7 @@ def t_error(t):
 
 def tokenize(input):
     lexer = lex.lex(reflags=re.IGNORECASE)
+    lexer.begin("FIXED")
     lexer.input(input)
     return lexer
 
