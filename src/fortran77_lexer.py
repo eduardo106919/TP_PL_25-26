@@ -6,6 +6,7 @@ tokens = (
     "PROGRAM",
     "FUNCTION",
     "SUBROUTINE",
+    "RETURN",
     "END",
     "GOTO",
     "DO",
@@ -18,6 +19,7 @@ tokens = (
     "READ",
     "INTEGER",
     "REAL",
+    "DOUBLE_PRECISION",
     "LOGICAL",
     "CHARACTER",
     "FALSE",
@@ -25,15 +27,17 @@ tokens = (
     "EQ",
     "NE",
     "LE",
-    "LT" "GE",
+    "LT",
+    "GE",
     "GT",
     "AND",
     "OR",
     "NOT",
     "STRING",
-    "VAR",
+    "IDENTIFIER",
     "INT",
     "FLOAT",
+    "DOUBLE",
 )
 
 literals = "(),=+-*/"
@@ -60,13 +64,22 @@ def t_FUNCTION(t):
     return t
 
 
+def t_RETURN(t):
+    r"RETURN"
+    return t
+
+
 def t_GOTO(t):
-    r"GOTO"
+    r"GOTO\s+\d+"
+    # get the label value
+    t.value = int(t.value.split()[-1])
     return t
 
 
 def t_DO(t):
-    r"DO"
+    r"DO\s+\d+"
+    # get the label value
+    t.value = int(t.value.split()[-1])
     return t
 
 
@@ -117,6 +130,11 @@ def t_INTEGER(t):
 
 def t_REAL(t):
     r"REAL"
+    return t
+
+
+def t_DOUBLE_PRECISION(t):
+    r"DOUBLE\s+PRECISION"
     return t
 
 
@@ -188,20 +206,31 @@ def t_STRING(t):
     return t
 
 
+def t_DOUBLE(t):
+    r"[+-]?(\d+\.\d*|\.\d+|\d+)[Dd][+-]?\d+"
+    normalized_value = t.value.replace("D", "E").replace("d", "e")
+    t.value = float(normalized_value)
+    return t
+
+
+def t_FLOAT(t):
+    r"[+-]?((\d+\.\d*|\.\d+)([Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)"
+    t.value = float(t.value)
+    return t
+
+
 def t_INT(t):
     r"[+-]?\d+"
     t.value = int(t.value)
     return t
 
 
-def t_FLOAT(t):
-    r"[+-]?((\d+\.\d*)|(\.\d+)|(\d+))([ED][+-]?\d+)?"
-    t.value = float(t.value)
+def t_IDENTIFIER(t):
+    # must start with a letter and can have numbers
+    r"[a-zA-Z][a-zA-Z0-9]*"
+    t.value = t.value.upper()
     return t
 
-
-# must start with a letter and can have numbers
-t_VAR = r"[a-zA-Z][a-zA-Z0-9]*"
 
 t_ignore = " \t"
 
