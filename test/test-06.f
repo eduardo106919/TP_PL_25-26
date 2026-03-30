@@ -1,0 +1,11 @@
+C     TESTING NUMERIC TYPES
+      PROGRAM PRECTEST
+      REAL RVAL
+      DOUBLE PRECISION DVAL
+      INTEGER IVAL
+      RVAL = 1.23
+      DVAL = 4.56D2
+      IVAL = 100
+      RVAL = RVAL * IVAL
+      PRINT *, RVAL, DVAL
+      END
