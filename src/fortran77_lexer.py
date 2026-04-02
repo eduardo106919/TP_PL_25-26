@@ -200,6 +200,11 @@ def t_EQ(t):
     return t
 
 
+def t_NE(t):
+    r"\.NE\."
+    return t
+
+
 def t_NOT(t):
     r"\.NOT\."
     return t
