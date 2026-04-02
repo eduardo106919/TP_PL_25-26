@@ -25,8 +25,7 @@ tokens = (
     "DOUBLE_PRECISION",
     "LOGICAL",
     "CHARACTER",
-    "FALSE",
-    "TRUE",
+    "BOOLEAN",
     "EQ",
     "NE",
     "LE",
@@ -180,15 +179,9 @@ def t_CHARACTER(t):
     return t
 
 
-def t_FALSE(t):
-    r"\.FALSE\."
-    t.value = False
-    return t
-
-
-def t_TRUE(t):
-    r"\.TRUE\."
-    t.value = True
+def t_BOOLEAN(t):
+    r"\.(TRUE|FALSE)\."
+    t.value = True if t.value == ".TRUE." else False
     return t
 
 
