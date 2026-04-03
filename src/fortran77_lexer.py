@@ -51,10 +51,14 @@ def t_FIXED_comment(t):
 
 
 def t_FIXED_LABEL(t):
-    r"[ \t]*\d{1,5}"
-    t.value = int(t.value.strip())
-    t.lexer.begin("INITIAL")
-    return t
+    r"[ ]*\d{1,5}[ ]"
+    if len(t.value) > 6:
+        print(f"Invalid symbol: '{t.value}'")
+        t.lexer.begin("INITIAL")
+    else:
+        t.value = int(t.value.strip())
+        t.lexer.begin("INITIAL")
+        return t
 
 
 def t_FIXED_nolabel(t):
@@ -68,6 +72,7 @@ def t_FIXED_newline(t):
 
 
 def t_FIXED_error(t):
+    print(f"Invalid symbol: '{t.value[0]}'")
     t.lexer.skip(1)
 
 
@@ -272,7 +277,7 @@ def t_newline(t):
 
 
 def t_error(t):
-    print("Invalid symbol:", t.value[0])
+    print(f"Invalid symbol: '{t.value[0]}'")
     t.lexer.skip(1)
 
 
