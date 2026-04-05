@@ -80,23 +80,17 @@ t_FIXED_ignore = r""
 
 
 def t_PROGRAM(t):
-    r"PROGRAM\b\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the program
-    t.value = t.value.split()[-1]
+    r"PROGRAM\b"
     return t
 
 
 def t_SUBROUTINE(t):
-    r"SUBROUTINE\b\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the sub routine
-    t.value = t.value.split()[-1]
+    r"SUBROUTINE\b"
     return t
 
 
 def t_FUNCTION(t):
-    r"FUNCTION\b\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the function
-    t.value = t.value.split()[-1]
+    r"FUNCTION\b"
     return t
 
 
