@@ -5,6 +5,7 @@ import re
 states = (("FIXED", "exclusive"),)
 
 tokens = (
+    "ILLEGAL",
     "LABEL",
     "PROGRAM",
     "FUNCTION",
@@ -20,6 +21,7 @@ tokens = (
     "THEN",
     "PRINT",
     "READ",
+    "STOP",
     "INTEGER",
     "REAL",
     "DOUBLE_PRECISION",
@@ -51,14 +53,17 @@ def t_FIXED_comment(t):
 
 
 def t_FIXED_LABEL(t):
-    r"[ ]*\d{1,5}[ ]"
-    if len(t.value) > 6:
-        print(f"Invalid symbol: '{t.value}'")
-        t.lexer.begin("INITIAL")
+    r"[ ]*\d+[ ]?"
+
+    raw_value = t.value.strip()
+
+    if len(raw_value) > 5:
+        t.type = "ILLEGAL"
     else:
-        t.value = int(t.value.strip())
-        t.lexer.begin("INITIAL")
-        return t
+        t.value = int(raw_value)
+
+    t.lexer.begin("INITIAL")
+    return t
 
 
 def t_FIXED_nolabel(t):
@@ -72,115 +77,112 @@ def t_FIXED_newline(t):
 
 
 def t_FIXED_error(t):
-    print(f"Invalid symbol: '{t.value[0]}'")
+    t.type = "ILLEGAL"
+    t.value = t.value[0]
     t.lexer.skip(1)
+    return t
 
 
 t_FIXED_ignore = r""
 
 
 def t_PROGRAM(t):
-    r"PROGRAM\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the program
-    t.value = t.value.split()[-1]
+    r"\bPROGRAM\b"
     return t
 
 
 def t_SUBROUTINE(t):
-    r"SUBROUTINE\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the sub routine
-    t.value = t.value.split()[-1]
+    r"\bSUBROUTINE\b"
     return t
 
 
 def t_FUNCTION(t):
-    r"FUNCTION\s+[a-zA-Z][a-zA-Z0-9]*"
-    # get the name of the function
-    t.value = t.value.split()[-1]
+    r"\bFUNCTION\b"
     return t
 
 
 def t_RETURN(t):
-    r"RETURN"
+    r"\bRETURN\b"
     return t
 
 
 def t_GOTO(t):
-    r"GOTO\s+\d+"
-    # get the label value
-    t.value = int(t.value.split()[-1])
+    r"\bGOTO\b"
     return t
 
 
 def t_DO(t):
-    r"DO\s+\d+"
-    # get the label value
-    t.value = int(t.value.split()[-1])
+    r"\bDO\b"
     return t
 
 
 def t_CONTINUE(t):
-    r"CONTINUE"
+    r"\bCONTINUE\b"
     return t
 
 
 def t_IF(t):
-    r"IF"
+    r"\bIF\b"
     return t
 
 
 def t_ENDIF(t):
-    r"ENDIF"
+    r"\bENDIF\b"
     return t
 
 
 def t_END(t):
-    r"END"
+    r"\bEND\b"
     return t
 
 
 def t_ELSE(t):
-    r"ELSE"
+    r"\bELSE\b"
     return t
 
 
 def t_THEN(t):
-    r"THEN"
+    r"\bTHEN\b"
     return t
 
 
 def t_PRINT(t):
-    r"PRINT"
+    r"\bPRINT\b"
     return t
 
 
 def t_READ(t):
-    r"READ"
+    r"\bREAD\b"
+    return t
+
+
+def t_STOP(t):
+    r"\bSTOP\b"
     return t
 
 
 def t_INTEGER(t):
-    r"INTEGER"
+    r"\bINTEGER\b"
     return t
 
 
 def t_REAL(t):
-    r"REAL"
+    r"\bREAL\b"
     return t
 
 
 def t_DOUBLE_PRECISION(t):
-    r"DOUBLE\s+PRECISION"
+    r"\bDOUBLE\s+PRECISION\b"
     return t
 
 
 def t_LOGICAL(t):
-    r"LOGICAL"
+    r"\bLOGICAL\b"
     return t
 
 
 def t_CHARACTER(t):
-    r"CHARACTER"
+    r"\bCHARACTER\b"
     return t
 
 
@@ -242,27 +244,27 @@ def t_STRING(t):
 
 
 def t_DOUBLE(t):
-    r"[+-]?(\d+\.\d*|\.\d+|\d+)[Dd][+-]?\d+"
+    r"\b[+-]?(\d+\.\d*|\.\d+|\d+)[Dd][+-]?\d+\b"
     normalized_value = t.value.replace("D", "E").replace("d", "e")
     t.value = float(normalized_value)
     return t
 
 
 def t_FLOAT(t):
-    r"[+-]?((\d+\.\d*|\.\d+)([Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)"
+    r"\b[+-]?((\d+\.\d*|\.\d+)([Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)\b"
     t.value = float(t.value)
     return t
 
 
 def t_INT(t):
-    r"[+-]?\d+"
+    r"\b[+-]?\d+\b"
     t.value = int(t.value)
     return t
 
 
 def t_IDENTIFIER(t):
     # must start with a letter and can have numbers
-    r"[a-zA-Z][a-zA-Z0-9]*"
+    r"\b[a-zA-Z][a-zA-Z0-9]{,5}\b"
     t.value = t.value.upper()
     return t
 
@@ -277,8 +279,10 @@ def t_newline(t):
 
 
 def t_error(t):
-    print(f"Invalid symbol: '{t.value[0]}'")
+    t.type = "ILLEGAL"
+    t.value = t.value[0]
     t.lexer.skip(1)
+    return t
 
 
 def tokenize(input):
