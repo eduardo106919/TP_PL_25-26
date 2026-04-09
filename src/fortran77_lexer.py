@@ -2,11 +2,10 @@ import ply.lex as lex
 import sys
 import re
 
-states = (("FIXED", "exclusive"),)
+states = (("COMMENT", "exclusive"),)
 
 tokens = (
     "ILLEGAL",
-    "LABEL",
     "PROGRAM",
     "FUNCTION",
     "SUBROUTINE",
@@ -47,43 +46,30 @@ tokens = (
 literals = "(),=+-*/"
 
 
-def t_FIXED_comment(t):
-    # ignore comments
-    r"[Cc\*][^\n]*"
+def t_COMMENT_comment(t):
+    r"[Cc*][^\n]*"
+    pass
 
 
-def t_FIXED_LABEL(t):
-    r"[ ]*\d+[ ]?"
-
-    raw_value = t.value.strip()
-
-    if len(raw_value) > 5:
-        t.type = "ILLEGAL"
-    else:
-        t.value = int(raw_value)
-
-    t.lexer.begin("INITIAL")
-    return t
-
-
-def t_FIXED_nolabel(t):
-    r"[ \t]+"
-    t.lexer.begin("INITIAL")
-
-
-def t_FIXED_newline(t):
+def t_COMMENT_newline(t):
     r"\n"
     t.lexer.lineno += 1
 
 
-def t_FIXED_error(t):
+def t_COMMENT_other(t):
+    r"."
+    t.lexer.lexpos -= 1
+    t.lexer.begin("INITIAL")
+
+
+def t_COMMENT_error(t):
     t.type = "ILLEGAL"
     t.value = t.value[0]
     t.lexer.skip(1)
     return t
 
 
-t_FIXED_ignore = r""
+t_COMMENT_ignore = ""
 
 
 def t_PROGRAM(t):
@@ -275,7 +261,7 @@ t_ignore = " \t"
 def t_newline(t):
     r"\n"
     t.lexer.lineno += 1
-    t.lexer.begin("FIXED")
+    t.lexer.begin("COMMENT")
 
 
 def t_error(t):
@@ -287,8 +273,8 @@ def t_error(t):
 
 def tokenize(input):
     lexer = lex.lex(reflags=re.IGNORECASE)
-    lexer.begin("FIXED")
     lexer.input(input)
+    lexer.begin("COMMENT")
     return lexer
 
 
