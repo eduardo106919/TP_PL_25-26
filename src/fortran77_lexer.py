@@ -174,6 +174,7 @@ def t_CHARACTER(t):
 
 def t_BOOLEAN(t):
     r"\.(TRUE|FALSE)\."
+    t.value = t.value.upper()
     t.value = True if t.value == ".TRUE." else False
     return t
 
@@ -250,8 +251,11 @@ def t_INT(t):
 
 def t_IDENTIFIER(t):
     # must start with a letter and can have numbers
-    r"\b[a-zA-Z][a-zA-Z0-9]{,5}\b"
+    r"\b[a-zA-Z][a-zA-Z0-9]*\b"
     t.value = t.value.upper()
+    if len(t.value) > 6:
+        t.type = "ILLEGAL"
+        return t
     return t
 
 
@@ -271,9 +275,9 @@ def t_error(t):
     return t
 
 
-def tokenize(input):
+def tokenize(text):
     lexer = lex.lex(reflags=re.IGNORECASE)
-    lexer.input(input)
+    lexer.input(text)
     lexer.begin("COMMENT")
     return lexer
 
