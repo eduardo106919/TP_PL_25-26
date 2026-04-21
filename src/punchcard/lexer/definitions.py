@@ -5,6 +5,7 @@ KEYWORDS = {
     "RETURN": "RETURN",
     "END": "END",
     "GOTO": "GOTO",
+    "CALL": "CALL",
     "DO": "DO",
     "CONTINUE": "CONTINUE",
     "IF": "IF",
@@ -42,6 +43,7 @@ TOKENS = (
     "LIT_DOUBLE",
     "LIT_STRING",
     "LIT_BOOLEAN",
+    # identifiers
     "IDENTIFIER",
 ) + tuple(KEYWORDS.values())
 
