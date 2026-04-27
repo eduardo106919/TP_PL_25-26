@@ -102,7 +102,7 @@ class PunchCardLexer:
                     t.lineno,
                     column,
                     f"Identifier '{t.value}' exceeds 6 characters",
-                    "Lexical",
+                    "Lexical Error",
                 )
             t.type = "ILLEGAL"
             return None
@@ -121,9 +121,14 @@ class PunchCardLexer:
     def t_error(self, t: lex.LexToken) -> None:
         column = self.find_column(t.lexer.lexdata, t)
 
-        self.error_manager.add_error(
-            t.lineno, column, f"Illegal character '{t.value[0]}'", "Lexical"
-        )
+        if self.error_manager:
+            self.error_manager.add_error(
+                t.lineno,
+                column,
+                f"Illegal character '{t.value[0]}'",
+                "Lexical Error",
+                emit_immediately=False,
+            )
 
         t.lexer.skip(1)
 
