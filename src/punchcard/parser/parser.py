@@ -618,9 +618,31 @@ class PunchCardParser:
 
     def p_error(self, p):
         if p:
-            print(f"Syntax error at token '{p.value}' (type={p.type}, line={p.lineno})")
+            line_start = self.lexer.lexdata.rfind("\n", 0, p.lexpos) + 1
+            column = (p.lexpos - line_start) + 1
+            message = f"Unexpected token '{p.value}' (type={p.type})"
+
+            if self.error_manager:
+                self.error_manager.add_error(
+                    p.lineno,
+                    column,
+                    message,
+                    "Syntax Error",
+                    emit_immediately=True,
+                )
+            else:
+                print(f"Syntax error at token '{p.value}' (type={p.type}, line={p.lineno})")
         else:
-            print("Syntax error: unexpected end of input")
+            if self.error_manager:
+                self.error_manager.add_error(
+                    None,
+                    None,
+                    "Unexpected end of input",
+                    "Syntax Error",
+                    emit_immediately=True,
+                )
+            else:
+                print("Syntax error: unexpected end of input")
 
     def parse(self, code: str):
         return self.parser.parse(code, lexer=self.lexer)
