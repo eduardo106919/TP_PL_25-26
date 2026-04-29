@@ -5,7 +5,6 @@ from punchcard.lexer.definitions import TOKENS
 from punchcard.lexer.lexer import PunchCardLexer
 from punchcard.parser.ast import *
 
-
 precedence = (
     ("left", "LOP_OR"),
     ("left", "LOP_AND"),
@@ -369,15 +368,21 @@ class PunchCardParser:
         """
         p[0] = []
 
-    def p_param_list_single(self, p):
+    def p_param_list_multiple(self, p):
         """
-        param_list : IDENTIFIER
+        param_list : param_list_mult
+        """
+        p[0] = p[1]
+
+    def p_param_list_multiple_single(self, p):
+        """
+        param_list_mult : IDENTIFIER
         """
         p[0] = [p[1]]
 
-    def p_param_list_multiple(self, p):
+    def p_param_list_multiple_more(self, p):
         """
-        param_list : param_list ',' IDENTIFIER
+        param_list_mult : param_list_mult ',' IDENTIFIER
         """
         p[0] = p[1] + [p[3]]
 
@@ -387,15 +392,21 @@ class PunchCardParser:
         """
         p[0] = []
 
-    def p_arg_list_single(self, p):
+    def p_arg_list_multiple(self, p):
         """
-        arg_list : expr
+        arg_list : arg_list_mult
+        """
+        p[0] = p[1]
+
+    def p_arg_list_multiple_single(self, p):
+        """
+        arg_list_mult : expr
         """
         p[0] = [p[1]]
 
-    def p_arg_list_multiple(self, p):
+    def p_arg_list_multiple_more(self, p):
         """
-        arg_list : arg_list ',' expr
+        arg_list_mult : arg_list_mult ',' expr
         """
         p[0] = p[1] + [p[3]]
 
@@ -465,39 +476,9 @@ class PunchCardParser:
         """
         p[0] = p[1]
 
-    def p_comparison_eq(self, p):
+    def p_comparison(self, p):
         """
-        comparison : arith_expr LOP_EQ arith_expr
-        """
-        p[0] = BinaryOp(p[2], p[1], p[3])
-
-    def p_comparison_ne(self, p):
-        """
-        comparison : arith_expr LOP_NE arith_expr
-        """
-        p[0] = BinaryOp(p[2], p[1], p[3])
-
-    def p_comparison_le(self, p):
-        """
-        comparison : arith_expr LOP_LE arith_expr
-        """
-        p[0] = BinaryOp(p[2], p[1], p[3])
-
-    def p_comparison_lt(self, p):
-        """
-        comparison : arith_expr LOP_LT arith_expr
-        """
-        p[0] = BinaryOp(p[2], p[1], p[3])
-
-    def p_comparison_ge(self, p):
-        """
-        comparison : arith_expr LOP_GE arith_expr
-        """
-        p[0] = BinaryOp(p[2], p[1], p[3])
-
-    def p_comparison_gt(self, p):
-        """
-        comparison : arith_expr LOP_GT arith_expr
+        comparison : comparison rel_op arith_expr
         """
         p[0] = BinaryOp(p[2], p[1], p[3])
 
@@ -507,17 +488,29 @@ class PunchCardParser:
         """
         p[0] = p[1]
 
-    def p_arith_expr_add(self, p):
+    def p_relop(self, p):
         """
-        arith_expr : arith_expr '+' term
+        rel_op : LOP_EQ
+               | LOP_NE
+               | LOP_LE
+               | LOP_LT
+               | LOP_GE
+               | LOP_GT
+        """
+        p[0] = p[1]
+
+    def p_arith_expr(self, p):
+        """
+        arith_expr : arith_expr arith_op term
         """
         p[0] = BinaryOp(p[2], p[1], p[3])
 
-    def p_arith_expr_sub(self, p):
+    def p_arith_op(self, p):
         """
-        arith_expr : arith_expr '-' term
+        arith_op : '+'
+                 | '-'
         """
-        p[0] = BinaryOp(p[2], p[1], p[3])
+        p[0] = p[1]
 
     def p_arith_expr_passthrough(self, p):
         """
@@ -525,17 +518,18 @@ class PunchCardParser:
         """
         p[0] = p[1]
 
-    def p_term_mul(self, p):
+    def p_term_expr(self, p):
         """
-        term : term '*' factor
+        term : term term_op factor
         """
         p[0] = BinaryOp(p[2], p[1], p[3])
 
-    def p_term_div(self, p):
+    def p_term_op(self, p):
         """
-        term : term '/' factor
+        term_op : '*'
+                | '/'
         """
-        p[0] = BinaryOp(p[2], p[1], p[3])
+        p[0] = p[1]
 
     def p_term_passthrough(self, p):
         """
@@ -554,6 +548,18 @@ class PunchCardParser:
         factor : unary
         """
         p[0] = p[1]
+
+    def p_unary_plus(self, p):
+        """
+        unary : '+' unary
+        """
+        p[0] = UnaryOp(p[1], p[2])
+
+    def p_unary_minus(self, p):
+        """
+        unary : '-' unary
+        """
+        p[0] = UnaryOp(p[1], p[2])
 
     def p_unary_passthrough(self, p):
         """
@@ -631,7 +637,9 @@ class PunchCardParser:
                     emit_immediately=True,
                 )
             else:
-                print(f"Syntax error at token '{p.value}' (type={p.type}, line={p.lineno})")
+                print(
+                    f"Syntax error at token '{p.value}' (type={p.type}, line={p.lineno})"
+                )
         else:
             if self.error_manager:
                 self.error_manager.add_error(
