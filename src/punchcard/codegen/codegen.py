@@ -64,6 +64,30 @@ class CodeGen:
             self.emitter.emit(f"PUSHN {n}")  # reserva N zeros
 
     # Statements
+    def visit_AssignmentStmt(self, node: AssignmentStmt):
+        # Avalia o valor da expressão (fica no topo do stack)
+        node.value.accept(self)
+        # Guarda na variável
+        if isinstance(node.lvalue, str):
+            # lvalue é um IDENTIFIER simples (string vinda do parser)
+            pos = self.globals[node.lvalue]
+            self.emitter.emit(f"STOREG {pos}")
+        elif isinstance(node.lvalue, ArrayAccess):
+            # array: endereço base + índice
+            pos = self.globals[node.lvalue.name]
+            self.emitter.emit(f"PUSHGP")
+            self.emitter.emit(f"PUSHI {pos}")
+            self.emitter.emit("PADD")
+            # avalia o índice (Fortran arrays são 1-based, subtraímos 1)
+            node.lvalue.indices[0].accept(self)
+            self.emitter.emit("PUSHI 1")
+            self.emitter.emit("SUB")
+            self.emitter.emit("PADD")
+            # agora temos [valor, endereço] — precisamos de trocar
+            self.emitter.emit("SWAP")
+            self.emitter.emit("STORE 0")
+
+
     def visit_PrintStmt(self, node: PrintStmt):
         for item in node.items:
             item.accept(self)
@@ -100,7 +124,49 @@ class CodeGen:
         elif node.type == "boolean":
             self.emitter.emit(f"PUSHI {1 if node.value else 0}")
 
+    def visit_Identifier(self, node: Identifier):
+        pos = self.globals.get(node.name)
+        if pos is not None:
+            self.emitter.emit(f"PUSHG {pos}")
+        # se não está na tabela, pode ser uma função - tratado em ArrayAccess
 
+    def visit_BinaryOp(self, node: BinaryOp):
+        node.left.accept(self)
+        node.right.accept(self)
+        op_map = {
+            "+": "ADD",
+            "-": "SUB",
+            "*": "MUL",
+            "/": "DIV",
+            ".EQ.": "EQUAL",
+            ".NE.": lambda: (self.emitter.emit("EQUAL"), self.emitter.emit("NOT")),
+            ".LT.": "INF",
+            ".LE.": "INFEQ",
+            ".GT.": "SUP",
+            ".GE.": "SUPEQ",
+            ".AND.": "AND",
+            ".OR.": "OR",
+            "**": self._emit_power,
+        }
+        instr = op_map.get(node.op)
+        if callable(instr):
+            instr()
+        elif instr:
+            self.emitter.emit(instr)
+        else:
+            raise NotImplementedError(f"Operador não suportado: {node.op}")
+    
+    def visit_UnaryOp(self, node: UnaryOp):
+        node.operand.accept(self)
+        if node.op == "-":
+            self.emitter.emit("PUSHI -1")
+            self.emitter.emit("MUL")
+        elif node.op == ".NOT.":
+            self.emitter.emit("NOT")
+        # unário + não faz nada
+
+    
+    
 
     # Fallback
     def generic_visit(self, node):
