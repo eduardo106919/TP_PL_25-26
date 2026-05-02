@@ -15,6 +15,7 @@ KEYWORDS = {
     "PRINT": "PRINT",
     "READ": "READ",
     "STOP": "STOP",
+    "DOUBLE": "DT_DOUBLE_PRECISION",
     "INTEGER": "DT_INTEGER",
     "REAL": "DT_REAL",
     "LOGICAL": "DT_LOGICAL",
