@@ -17,14 +17,11 @@ KEYWORDS = {
     "STOP": "STOP",
     "INTEGER": "DT_INTEGER",
     "REAL": "DT_REAL",
-    "DOUBLE PRECISION": "DT_DOUBLE_PRECISION",
     "LOGICAL": "DT_LOGICAL",
     "CHARACTER": "DT_CHARACTER",
 }
 
 TOKENS = (
-    # special tokens
-    "ILLEGAL",
     # operators
     "OP_POWER",
     # logical operators
