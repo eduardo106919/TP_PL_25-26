@@ -63,6 +63,44 @@ class CodeGen:
             self._next_global += n
             self.emitter.emit(f"PUSHN {n}")  # reserva N zeros
 
+    # Statements
+    def visit_PrintStmt(self, node: PrintStmt):
+        for item in node.items:
+            item.accept(self)
+            self._emit_write(item)
+        self.emitter.emit("WRITELN")
+ 
+    def _emit_write(self, expr):
+        """Emite a instrução de escrita correta consoante o tipo do nó."""
+        if isinstance(expr, Literal):
+            if expr.type == "string":
+                self.emitter.emit("WRITES")
+            elif expr.type in ("float", "double"):
+                self.emitter.emit("WRITEF")
+            elif expr.type == "boolean":
+                self.emitter.emit("WRITEI")
+            else:  # int
+                self.emitter.emit("WRITEI")
+        else:
+            # Para variáveis e expressões não sabemos o tipo aqui ainda —
+            # por defeito usamos WRITEI (será melhorado com a symbol table do semântico)
+            self.emitter.emit("WRITEI")
+
+
+    # Expressões
+ 
+    def visit_Literal(self, node: Literal):
+        if node.type == "int":
+            self.emitter.emit(f"PUSHI {node.value}")
+        elif node.type in ("float", "double"):
+            self.emitter.emit(f"PUSHF {node.value}")
+        elif node.type == "string":
+            escaped = node.value.replace("'", "\\'")
+            self.emitter.emit(f'PUSHS "{escaped}"')
+        elif node.type == "boolean":
+            self.emitter.emit(f"PUSHI {1 if node.value else 0}")
+
+
 
     # Fallback
     def generic_visit(self, node):
