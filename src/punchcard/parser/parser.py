@@ -5,19 +5,18 @@ from punchcard.lexer.definitions import TOKENS
 from punchcard.lexer.lexer import PunchCardLexer
 from punchcard.parser.ast import *
 
-precedence = (
-    ("left", "LOP_OR"),
-    ("left", "LOP_AND"),
-    ("right", "LOP_NOT"),
-    ("left", "LOP_EQ", "LOP_NE", "LOP_LE", "LOP_LT", "LOP_GE", "LOP_GT"),
-    ("left", "+", "-"),
-    ("left", "*", "/"),
-    ("right", "UMINUS", "UPLUS"),
-    ("right", "OP_POWER"),
-)
-
 
 class PunchCardParser:
+    precedence = (
+        ("left", "LOP_OR"),
+        ("left", "LOP_AND"),
+        ("right", "LOP_NOT"),
+        ("left", "LOP_EQ", "LOP_NE", "LOP_LE", "LOP_LT", "LOP_GE", "LOP_GT"),
+        ("left", "+", "-"),
+        ("left", "*", "/"),
+        ("right", "OP_POWER"),
+    )
+
     def __init__(self, lexer: PunchCardLexer, error_manager: ErrorManager = None):
         self.lexer = lexer
         self.error_manager = error_manager
@@ -148,7 +147,7 @@ class PunchCardParser:
         """
         var_decl : IDENTIFIER
         """
-        p[0] = p[1]
+        p[0] = VarDecl(p[1])
 
     def p_var_decl_array(self, p):
         """
@@ -246,19 +245,17 @@ class PunchCardParser:
         """
         p[0] = p[1]
 
-    # TODO: investigar isto
     def p_statement_body_call(self, p):
         """
         statement_body : call_stmt
         """
         p[0] = p[1]
 
-    # TODO: investigar isto
     def p_call_stmt(self, p):
         """
         call_stmt : CALL IDENTIFIER '(' arg_list ')'
         """
-        # p[0] = CallStmt(p[2], p[4])
+        p[0] = CallStmt(p[2], p[4])
 
     def p_assignment_stmt(self, p):
         """
@@ -304,15 +301,61 @@ class PunchCardParser:
 
     def p_do_stmt(self, p):
         """
-        do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr statement_section LIT_INT CONTINUE
+        do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr do_body
         """
-        p[0] = DoStmt(p[2], p[3], p[5], p[7], p[8], p[9])
+        body, go_label = p[8]
+        p[0] = DoStmt(p[2], p[3], p[5], p[7], body, go_label)
 
     def p_do_stmt_step(self, p):
         """
-        do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr statement_section LIT_INT CONTINUE
+        do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr do_body
         """
-        p[0] = DoStmt(p[2], p[3], p[5], p[7], p[9], p[10])
+        body, go_label = p[10]
+        p[0] = DoStmt(p[2], p[3], p[5], p[7], body, go_label, step=p[9])
+
+    def p_do_body(self, p):
+        """
+        do_body : do_inner_stmts LIT_INT CONTINUE
+        """
+        p[0] = (p[1], p[2])  # (lista de statements, go_label)
+
+    def p_do_inner_stmts_empty(self, p):
+        """
+        do_inner_stmts : empty
+        """
+        p[0] = []
+
+    def p_do_inner_stmts_list(self, p):
+        """
+        do_inner_stmts : do_inner_stmts do_inner_statement
+        """
+        p[0] = p[1] + [p[2]]
+
+    def p_do_inner_statement(self, p):
+        """
+        do_inner_statement : assignment_stmt
+                           | goto_stmt
+                           | if_stmt
+                           | do_stmt
+                           | print_stmt
+                           | read_stmt
+                           | stop_stmt
+                           | return_stmt
+                           | call_stmt
+                           | LIT_INT assignment_stmt
+                           | LIT_INT goto_stmt
+                           | LIT_INT if_stmt
+                           | LIT_INT do_stmt
+                           | LIT_INT print_stmt
+                           | LIT_INT read_stmt
+                           | LIT_INT stop_stmt
+                           | LIT_INT return_stmt
+                           | LIT_INT call_stmt
+        """
+        if len(p) == 2:
+            p[0] = p[1]
+        else:
+            p[0] = LabeledStatement(p[1], p[2])
 
     def p_continue_stmt(self, p):
         """
@@ -613,7 +656,6 @@ class PunchCardParser:
         """
         primary : IDENTIFIER '(' arg_list ')'
         """
-        # NOTE: ambiguity will be resolved in semantic phase
         p[0] = ArrayAccess(p[1], p[3])
 
     def p_empty(self, p):

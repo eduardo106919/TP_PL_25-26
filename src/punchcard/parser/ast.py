@@ -17,6 +17,11 @@ class ASTNode:
                 lines.append(f"{pad}  {key}: {val!r}")
         return "\n".join(lines)
 
+    def accept(self, visitor):
+        method_name = f"visit_{self.__class__.__name__}"
+        method = getattr(visitor, method_name, visitor.generic_visit)
+        return method(self)
+
 
 class Program(ASTNode):
     def __init__(self, units):
@@ -87,14 +92,14 @@ class IfStmt(ASTNode):
 
 
 class DoStmt(ASTNode):
-    def __init__(self, label, var, start, stop, body, go_label, step=None):
+    def __init__(self, label, var, start, stop, body, go_label=None, step=None):
         self.label = label
         self.var = var
         self.start = start
         self.stop = stop
-        self.go_label = go_label
         self.step = step
         self.body = body
+        self.go_label = go_label
 
 
 class ContinueStmt(ASTNode):
@@ -124,6 +129,12 @@ class ReturnStmt(ASTNode):
         pass
 
 
+class CallStmt(ASTNode):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+
+
 class BinaryOp(ASTNode):
     def __init__(self, op, left, right):
         self.op = op
@@ -146,6 +157,12 @@ class ArrayAccess(ASTNode):
     def __init__(self, name, indices):
         self.name = name
         self.indices = indices
+
+
+class FunctionCall(ASTNode):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
 
 
 class Literal(ASTNode):
