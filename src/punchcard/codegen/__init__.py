@@ -1,4 +1,4 @@
-from punchcard.codegen.codegen import CodeGen
-from punchcard.codegen.emitter import Emitter
+from punchcard.codegen.codegen import PunchCardCodeGenerator
+from punchcard.codegen.emitter import PunchCardEmitter
 
-__all__ = ["CodeGen", "Emitter"]
+__all__ = ["PunchCardCodeGenerator", "PunchCardEmitter"]

@@ -1,4 +1,4 @@
-class Emitter:
+class PunchCardEmitter:
     """
     Guarda as instruções EWVM geradas e depois imprime-as.
     """

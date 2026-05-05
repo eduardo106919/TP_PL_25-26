@@ -1,16 +1,16 @@
 from typing import Optional
 from punchcard.parser.ast import *
-from punchcard.codegen.emitter import Emitter
+from punchcard.codegen.emitter import PunchCardEmitter
 from punchcard.semantic.symbol_table import SymbolKind, FortranType, Symbol
 
-class CodeGen:
+class PunchCardCodeGenerator:
     """
     Percorre a AST com o padrão Visitor e gera instruções EWVM.
     Usa a informação de índices gerada na Symbol Table durante a análise semântica.
     """
 
     def __init__(self):
-        self.emitter = Emitter()
+        self.emitter = PunchCardEmitter()
         self.current_scope = None
         self.global_symbols = {}
         self._label_count = 0
