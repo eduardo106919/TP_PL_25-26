@@ -1,0 +1,63 @@
+
+\newcommand{\aluno}[2]{%
+	\makebox[2.5cm][l]{\textbf{#1}}#2%
+}
+
+\newcommand{\logobox}[1]{%
+	\IfFileExists{#1}{%
+		\includegraphics[width=26mm,keepaspectratio]{#1}%
+	}{%
+		\setlength{\fboxsep}{0pt}%
+		\colorbox{gray!25}{\makebox[26mm][c]{\rule{0pt}{18mm}\small\textsf{#1}}}%
+	}%
+}
+
+\newcommand{\makecover}{
+	\newgeometry{left=4.5cm, right=3cm, top=4cm, bottom=3cm}
+	\thispagestyle{empty}
+	
+	\AddToShipoutPictureBG*{
+		\begin{tikzpicture}[remember picture, overlay]
+			\fill[coverbar]
+			(current page.north west)
+			rectangle
+			($(current page.south west) + (2.5cm, 0)$);
+			\node[
+			anchor    = south east,
+			inner sep = 0pt,
+			xshift    = -3cm,
+			yshift    =  3cm,
+			font      = \fontsize{70}{70}\selectfont\bfseries\sffamily,
+			text      = coverbar,
+			] at (current page.south east) {\Sigla};
+		\end{tikzpicture}
+	}
+	
+	\begingroup
+	\raggedright
+	\setlength{\parindent}{0pt}
+	
+	\logobox{imgs/UM.jpg}\logobox{imgs/EE.jpg}
+	\par\vspace{7mm}
+	
+	{\fontsize{14.4pt}{17pt}\selectfont\textbf{Universidade do Minho}\par}
+	{\fontsize{14.4pt}{17pt}\selectfont Escola de Engenharia\par}
+	{\fontsize{14.4pt}{17pt}\selectfont Licenciatura em Engenharia Informática\par}
+	
+	\vspace{50mm}
+	
+	{\fontsize{30pt}{24pt}\selectfont\textbf{\Titulo}\par}
+	\vspace{1.5em}
+	{\fontsize{20pt}{24pt}\selectfont\UC\par}
+	{\fontsize{17pt}{21pt}\selectfont Ano Letivo \AnoLetivo\par}
+	
+	\vspace{45mm}
+	
+	{\fontsize{14.4pt}{18pt}\selectfont\textbf{Grupo \Grupo}\par}
+	\vspace{10pt}
+	{\fontsize{14.4pt}{18pt}\selectfont\listaAlunos\par}
+	
+	\endgroup
+	\restoregeometry
+	\clearpage
+}

@@ -1,0 +1,113 @@
+\documentclass[11pt, a4paper, fleqn]{article}
+
+\usepackage[portuguese]{babel}
+\usepackage{graphicx}
+\usepackage{leading}
+\usepackage{tabularx}
+\usepackage{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{eso-pic}
+
+%----------------- font -------------------------------------------------------%
+\usepackage[T1]{fontenc}
+\usepackage{paratype}
+\usepackage[basic, italic]{mathastext}
+
+%----------------- titles formats ---------------------------------------------%
+\usepackage{titlesec}
+\titleformat{\part}
+{\LARGE\bfseries}{\thepart}{1em}{}
+\titleformat{\section}
+{\LARGE\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+{\Large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\paragraph}[runin]
+{\sffamily\bfseries}
+{}
+{0pt}
+{}
+
+%----------------- footnote format --------------------------------------------%
+\usepackage[perpage, bottom, marginal]{footmisc}
+\makeatletter
+\renewcommand{\@makefnmark}{\hbox{\textsuperscript{\sffamily\@thefnmark}}}
+\makeatother
+\renewcommand*{\footnotelayout}{\footnotesize\sffamily}
+
+%----------------- page number format -----------------------------------------%
+\usepackage{fancyhdr}
+\fancypagestyle{pagestyle}{%
+	\fancyhf{}
+	\fancyfoot[C]{\makebox[\textwidth]{\sffamily\normalsize\thepage}}
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{0pt}
+}
+
+%----------------- verbatim ---------------------------------------------------%
+\usepackage{fancyvrb}
+
+
+%----------------- bibliography ----------------------------------------------%
+\usepackage[
+backend=biber,
+style=ieee,
+sorting=none
+]{biblatex}
+
+\addbibresource{refs.bib}
+
+%----------------- annexes ---------------------------------------------------%
+\usepackage{appendix}
+
+\definecolor{coverbar}{HTML}{263238}
+
+\newcommand{\Titulo}{Punch Card}
+\newcommand{\UC}{Processamento de Linguagens}
+\newcommand{\Sigla}{PL}
+\newcommand{\Grupo}{09}
+\newcommand{\AnoLetivo}{2025/2026}
+
+\newcommand{\listaAlunos}{%
+	\aluno{A106919}{Eduardo Freitas Fernandes}\\[6pt]%
+	\aluno{A106842}{Gonçalo Rodrigues Ribeiro}\\[6pt]%
+	\aluno{A106888}{José Mário Raimundo Lima}%
+}
+
+\input{cover}
+
+
+\begin{document}
+\sffamily
+\setlength{\parindent}{0em}
+\emergencystretch 3em
+\renewcommand{\baselinestretch}{1.25} 
+
+\makecover
+
+\newgeometry{left=25mm,right=20mm,top=25mm,bottom=25mm}
+\setlength{\parindent}{1em}
+
+\tableofcontents
+
+\newpage
+
+
+\section{Introdução}
+
+\section{Arquitetura do Sistema}
+
+\section{\textit{Context Free Grammar}}
+
+\section{Decisões de Implementação}
+
+\section{Manual de Utilização}
+
+\section{Conclusão}
+
+
+\end{document}
