@@ -94,18 +94,18 @@ class PunchCardLexer:
         # check for reserved words
         t.type = KEYWORDS.get(t.value, "IDENTIFIER")
 
-        # identifiers can't have more than 6 characters
-        if t.type == "IDENTIFIER" and len(t.value) > 6:
-            column = self.find_column(t.lexer.lexdata, t)
-            if self.error_manager:
-                self.error_manager.add_error(
-                    t.lineno,
-                    column,
-                    f"Identifier '{t.value}' exceeds 6 characters",
-                    "Lexical Error",
-                )
-            t.type = "ILLEGAL"
-            return None
+        # identifiers can't have more than 31 characters (modern Fortran limit)
+        # if t.type == "IDENTIFIER" and len(t.value) > 31:
+        #     column = self.find_column(t.lexer.lexdata, t)
+        #     if self.error_manager:
+        #         self.error_manager.add_error(
+        #             t.lineno,
+        #             column,
+        #             f"Identifier '{t.value}' exceeds 31 characters",
+        #             "Lexical Error",
+        #         )
+        #     t.type = "ILLEGAL"
+        #     return None
 
         return t
 
