@@ -60,6 +60,11 @@ class Symbol:
     # Linha de declaração (útil para mensagens de erro)
     declared_at: Optional[int] = None
 
+    # Índice no stack (gp[index] ou fp[index])
+    index: Optional[int] = None
+    # Tamanho total (1 para escalares, produto das dimensões para arrays)
+    size: int = 1
+
     def is_callable(self) -> bool:
         return self.kind in (SymbolKind.FUNCTION, SymbolKind.SUBROUTINE)
 
@@ -92,6 +97,7 @@ class Scope:
         self.kind = kind  # 'program' | 'function' | 'subroutine'
         self._symbols: dict[str, Symbol] = {}
         self._labels: set[int] = set()
+        self.next_index = 0  # próximo índice disponível no stack frame
 
     def declare(self, symbol: Symbol) -> None:
         """
@@ -105,6 +111,12 @@ class Scope:
                 f"'{symbol.name}' já declarado neste scope "
                 f"(linha {existing.declared_at})"
             )
+
+        # Atribui o índice se for uma variável, array ou parâmetro
+        if symbol.kind in (SymbolKind.VARIABLE, SymbolKind.ARRAY, SymbolKind.PARAMETER):
+            symbol.index = self.next_index
+            self.next_index += symbol.size
+
         self._symbols[key] = symbol
 
     def lookup(self, name: str) -> Optional[Symbol]:
@@ -165,6 +177,24 @@ class SymbolTable:
         self._scopes: list[Scope] = []
         # program units globais: nome → Symbol (FUNCTION ou SUBROUTINE)
         self._global: dict[str, Symbol] = {}
+        self._add_builtins()
+
+    def _add_builtins(self):
+        """Regista funções intrínsecas do Fortran 77."""
+        builtins = [
+            Symbol("MOD", SymbolKind.FUNCTION, FortranType.INTEGER, params=["A", "B"]),
+            Symbol("ABS", SymbolKind.FUNCTION, FortranType.INTEGER, params=["A"]),
+            Symbol("SQRT", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("SIN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("COS", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("TAN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("ATAN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("EXP", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("LOG", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+            Symbol("LOG10", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
+        ]
+        for b in builtins:
+            self._global[b.name.upper()] = b
 
     def enter_scope(self, name: str, kind: str) -> Scope:
         """Cria e empurra um novo scope para a pilha."""
