@@ -1,7 +1,6 @@
 class Emitter:
     """
     Guarda as instruções EWVM geradas e depois imprime-as.
-    Simples: é só uma lista de strings.
     """
 
     def __init__(self):
@@ -9,7 +8,19 @@ class Emitter:
         self._label_counter = 0
 
     def emit(self, instruction: str) -> None:
-        self._lines.append(instruction)
+        """
+        Emite uma instrução. 
+        Se for uma label (termina em :) ou início/fim de programa, não indenta.
+        Caso contrário, adiciona indentação.
+        """
+        instr = instruction.strip()
+        if not instr:
+            return
+
+        if instr.endswith(":") or instr in ("START", "STOP"):
+            self._lines.append(instr)
+        else:
+            self._lines.append(f"    {instr}")
 
     def emit_label(self, label: str) -> None:
         """Emite uma label (sem indentação)."""
