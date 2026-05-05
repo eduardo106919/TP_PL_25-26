@@ -5,3 +5,14 @@ __pycache__
 parsetab.py
 parser.out
 *.pyc
+
+# latex
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.bbl
+*.bcf
+*.blg
+*.run.xml
