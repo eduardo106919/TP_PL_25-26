@@ -4,8 +4,8 @@ import argparse
 from punchcard.errors import ErrorManager
 from punchcard.lexer.lexer import PunchCardLexer
 from punchcard.parser.parser import PunchCardParser
-from punchcard.semantic.semantic_analyser import SemanticAnalyser
-from punchcard.codegen.codegen import CodeGen
+from punchcard.semantic.semantic_analyser import PunchCardSemanticAnalyser
+from punchcard.codegen.codegen import PunchCardCodeGenerator
 
 
 def compile_code(code: str):
@@ -23,14 +23,14 @@ def compile_code(code: str):
         errors.report()
         return
 
-    analyzer = SemanticAnalyser(errors)
+    analyzer = PunchCardSemanticAnalyser(errors)
     analyzer.analyse(ast)
 
     if errors.has_errors():
         errors.report()
         return
 
-    codegen = CodeGen()
+    codegen = PunchCardCodeGenerator()
     ewvm_code = codegen.generate(ast)
 
     print(ewvm_code)
