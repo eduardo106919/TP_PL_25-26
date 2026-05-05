@@ -31,7 +31,7 @@ from punchcard.parser.ast import (
 )
 
 from punchcard.semantic.symbol_table import (
-    SymbolTable,
+    PunchCardSymbolTable,
     Symbol,
     SymbolKind,
     FortranType,
@@ -92,7 +92,7 @@ def _result_type(
     return None
 
 
-class SemanticAnalyser:
+class PunchCardSemanticAnalyser:
     """
     Realiza a análise semântica do programa Fortran 77 percorrendo a AST
     com o padrão Visitor.
@@ -107,10 +107,8 @@ class SemanticAnalyser:
     """
 
     def __init__(self, error_manager: ErrorManager):
-        self.st = SymbolTable()
+        self.st = PunchCardSymbolTable()
         self.em = error_manager
-        # tipo inferido da última expressão visitada — usado para verificação
-        # de tipos em atribuições e chamadas
         self._expr_type: Optional[FortranType] = None
 
     def analyse(self, tree: ASTNode) -> None:

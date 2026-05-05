@@ -152,7 +152,7 @@ class Scope:
         return f"Scope({self.kind} {self.name!r}, [{syms}], labels={self._labels})"
 
 
-class SymbolTable:
+class PunchCardSymbolTable:
     """
     Tabela de símbolos global do compilador.
 
