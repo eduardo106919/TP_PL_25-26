@@ -186,11 +186,14 @@ class SemanticAnalyser:
         # Segundo passo: analisa cada unidade no seu próprio scope.
         for unit in node.units:
             unit.accept(self)
+        
+        # Guarda a tabela de símbolos globais no nó Program para uso no CodeGen
+        node.global_symbols = self.st._global
 
     def visit_MainProgram(self, node: MainProgram) -> None:
         self.st.enter_scope(node.name, "program")
         self._process_body(node.body)
-        self.st.exit_scope()
+        node.scope = self.st.exit_scope()
 
     def visit_FunctionSubprogram(self, node: FunctionSubprogram) -> None:
         self.st.enter_scope(node.name, "function")
@@ -219,7 +222,7 @@ class SemanticAnalyser:
         )
 
         self._process_body(node.body)
-        self.st.exit_scope()
+        node.scope = self.st.exit_scope()
 
     def visit_SubroutineSubprogram(self, node: SubroutineSubprogram) -> None:
         self.st.enter_scope(node.name, "subroutine")
@@ -235,7 +238,7 @@ class SemanticAnalyser:
             )
 
         self._process_body(node.body)
-        self.st.exit_scope()
+        node.scope = self.st.exit_scope()
 
     def _process_body(self, body: Body) -> None:
         """
@@ -258,8 +261,21 @@ class SemanticAnalyser:
                 if var.dimensions:
                     existing.kind = SymbolKind.ARRAY
                     existing.dimensions = var.dimensions
+                    # Nota: o tamanho no stack (size) de um parâmetro é sempre 1
+                    # (é um ponteiro/referência), por isso não alteramos existing.size
             else:
+                # Verifica se é uma função global (F77 permite declarar o tipo da função)
+                glob = self.st._global.get(var.name.upper())
+                if glob and glob.kind == SymbolKind.FUNCTION:
+                    glob.type = ftype
+                    continue
+                
                 kind = SymbolKind.ARRAY if var.dimensions else SymbolKind.VARIABLE
+                size = 1
+                if var.dimensions:
+                    for dim in var.dimensions:
+                        if hasattr(dim, "value"):
+                            size *= int(dim.value)
                 self._safe(
                     self.st.declare,
                     Symbol(
@@ -267,6 +283,7 @@ class SemanticAnalyser:
                         kind=kind,
                         type=ftype,
                         dimensions=var.dimensions,
+                        size=size,
                     ),
                 )
 
@@ -419,8 +436,8 @@ class SemanticAnalyser:
             del node.indices
 
             if sym.params is not None:
-                self._check_arg_count(node.name, sym.params, node.indices)
-            for arg in node.indices:
+                self._check_arg_count(node.name, sym.params, node.args)
+            for arg in node.args:
                 arg.accept(self)
             self._expr_type = sym.type
 
