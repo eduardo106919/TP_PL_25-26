@@ -2,3 +2,6 @@
 # custom
 .venv
 __pycache__
+parsetab.py
+parser.out
+*.pyc
