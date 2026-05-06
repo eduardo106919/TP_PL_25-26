@@ -9,7 +9,7 @@ class PunchCardEmitter:
 
     def emit(self, instruction: str) -> None:
         """
-        Emite uma instrução. 
+        Emite uma instrução.
         Se for uma label (termina em :) ou início/fim de programa, não indenta.
         Caso contrário, adiciona indentação.
         """

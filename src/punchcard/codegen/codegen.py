@@ -3,6 +3,7 @@ from punchcard.parser.ast import *
 from punchcard.codegen.emitter import PunchCardEmitter
 from punchcard.semantic.symbol_table import SymbolKind, FortranType, Symbol
 
+
 class PunchCardCodeGenerator:
     """
     Percorre a AST com o padrão Visitor e gera instruções EWVM.
@@ -27,14 +28,14 @@ class PunchCardCodeGenerator:
     # Programa
     def visit_Program(self, node: Program):
         self.global_symbols = getattr(node, "global_symbols", {})
-        
+
         # Procura o MainProgram para começar a execução
         main = next((u for u in node.units if isinstance(u, MainProgram)), None)
         if main:
             self.emitter.emit("START")
             main.accept(self)
             self.emitter.emit("STOP")
-        
+
         # Subprogramas (funções e subrotinas)
         for unit in node.units:
             if not isinstance(unit, MainProgram):
@@ -88,10 +89,11 @@ class PunchCardCodeGenerator:
         node.body.accept(self)
         if not self.emitter.get_code().strip().endswith("RETURN"):
             self.visit_ReturnStmt(None)
+
     def visit_AssignmentStmt(self, node: AssignmentStmt):
         # Avalia o valor (fica no topo do stack)
         node.value.accept(self)
-        
+
         # LValue
         if isinstance(node.lvalue, str):
             sym = self.current_scope.lookup(node.lvalue)
@@ -125,12 +127,12 @@ class PunchCardCodeGenerator:
             # Converte consoante o tipo da variável
             name = item if isinstance(item, str) else item.name
             sym = self.current_scope.lookup(name)
-            
+
             if sym.type == FortranType.INTEGER:
                 self.emitter.emit("ATOI")
             elif sym.type in (FortranType.REAL, FortranType.DOUBLE):
                 self.emitter.emit("ATOF")
-            
+
             # Guarda na variável
             if isinstance(item, str):
                 self._emit_store(sym)
@@ -147,26 +149,26 @@ class PunchCardCodeGenerator:
     def visit_DoStmt(self, node: DoStmt):
         start_label = self._new_label("dostart")
         end_label = self._new_label("doend")
-        
+
         sym = self.current_scope.lookup(node.var)
-        
+
         # 1. Inicialização: var = start
         node.start.accept(self)
         self._emit_store(sym)
-        
+
         # 2. Início do Loop
         self.emitter.emit(f"{start_label}:")
-        
+
         # 3. Condição: var <= stop
         self._emit_push(sym)
         node.stop.accept(self)
         self.emitter.emit("INFEQ")
         self.emitter.emit(f"JZ {end_label}")
-        
+
         # 4. Corpo
         for stmt in node.body:
             stmt.accept(self)
-        
+
         # 5. Incremento: var = var + step (default 1)
         self._emit_push(sym)
         if node.step:
@@ -175,10 +177,10 @@ class PunchCardCodeGenerator:
             self.emitter.emit("PUSHI 1")
         self.emitter.emit("ADD")
         self._emit_store(sym)
-        
+
         # 6. Jump de volta
         self.emitter.emit(f"JUMP {start_label}")
-        
+
         # 7. Fim do Loop
         self.emitter.emit(f"{end_label}:")
 
@@ -197,19 +199,19 @@ class PunchCardCodeGenerator:
         # Versão simplificada: assume que IF sempre tem THEN e opcional ELSE
         else_label = self._new_label("ifelse")
         end_label = self._new_label("ifend")
-        
+
         node.condition.accept(self)
         self.emitter.emit(f"JZ {else_label}")
-        
+
         for stmt in node.then_body:
             stmt.accept(self)
         self.emitter.emit(f"JUMP {end_label}")
-        
+
         self.emitter.emit(f"{else_label}:")
         if node.else_body:
             for stmt in node.else_body:
                 stmt.accept(self)
-        
+
         self.emitter.emit(f"{end_label}:")
 
     def visit_ReturnStmt(self, node: Optional[ReturnStmt]):
@@ -218,11 +220,15 @@ class PunchCardCodeGenerator:
             sym = self.current_scope.lookup(self.current_scope.name)
             self._emit_push(sym)
             # Coloca no slot do primeiro argumento (fp[-(num_params-1)])
-            params = [s for s in self.current_scope.all_symbols() if s.kind == SymbolKind.PARAMETER]
+            params = [
+                s
+                for s in self.current_scope.all_symbols()
+                if s.kind == SymbolKind.PARAMETER
+            ]
             num_params = len(params)
             offset = -(num_params - 1) if num_params > 0 else 0
             self.emitter.emit(f"STOREL {offset}")
-        
+
         self.emitter.emit("RETURN")
 
     def visit_StopStmt(self, node: StopStmt):
@@ -236,7 +242,7 @@ class PunchCardCodeGenerator:
         # Limpa argumentos. Se for subrotina, limpamos tudo.
         if node.args:
             self.emitter.emit(f"POP {len(node.args)}")
-            
+
     def visit_FunctionCall(self, node: FunctionCall):
         # Built-ins directos
         name = node.name.upper()
@@ -253,7 +259,7 @@ class PunchCardCodeGenerator:
             node.args[0].accept(self)
             self.emitter.emit("FCOS")
             return
-        
+
         for arg in node.args:
             arg.accept(self)
         self.emitter.emit(f"PUSHA {node.name.lower()}")
@@ -354,15 +360,23 @@ class PunchCardCodeGenerator:
     def _get_local_index(self, sym: Symbol) -> int:
         """Traduz o índice da Symbol Table para o índice relativo ao fp."""
         # Se for parâmetro ou local, precisamos de ajustar relativo ao topo dos args
-        params = [s for s in self.current_scope.all_symbols() if s.kind == SymbolKind.PARAMETER]
+        params = [
+            s
+            for s in self.current_scope.all_symbols()
+            if s.kind == SymbolKind.PARAMETER
+        ]
         num_params = len(params)
         # Real index = index - (num_params - 1)
         return sym.index - (num_params - 1) if num_params > 0 else sym.index + 1
 
     def _get_expr_type(self, expr):
         if isinstance(expr, Literal):
-            mapping = {"int": FortranType.INTEGER, "float": FortranType.REAL, 
-                       "double": FortranType.DOUBLE, "string": FortranType.CHARACTER}
+            mapping = {
+                "int": FortranType.INTEGER,
+                "float": FortranType.REAL,
+                "double": FortranType.DOUBLE,
+                "string": FortranType.CHARACTER,
+            }
             return mapping.get(expr.type, FortranType.UNKNOWN)
         if isinstance(expr, (Identifier, str)):
             name = expr.name if hasattr(expr, "name") else expr

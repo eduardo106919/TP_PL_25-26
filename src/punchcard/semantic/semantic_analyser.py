@@ -184,7 +184,7 @@ class PunchCardSemanticAnalyser:
         # Segundo passo: analisa cada unidade no seu próprio scope.
         for unit in node.units:
             unit.accept(self)
-        
+
         # Guarda a tabela de símbolos globais no nó Program para uso no CodeGen
         node.global_symbols = self.st._global
 
@@ -267,7 +267,7 @@ class PunchCardSemanticAnalyser:
                 if glob and glob.kind == SymbolKind.FUNCTION:
                     glob.type = ftype
                     continue
-                
+
                 kind = SymbolKind.ARRAY if var.dimensions else SymbolKind.VARIABLE
                 size = 1
                 if var.dimensions:
