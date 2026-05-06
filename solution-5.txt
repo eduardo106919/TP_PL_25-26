@@ -1,0 +1,112 @@
+
+START
+
+PUSHI 0
+PUSHI 0
+PUSHI 0
+PUSHI 0
+
+PUSHS "INTRODUZA UM NUMERO DECIMAL INTEIRO:"
+WRITES
+WRITELN
+READ
+ATOI
+
+STOREG 0
+
+PUSHI 2
+STOREG 1
+
+LOOP:
+    PUSHG 1
+    PUSHI 9
+    INFEQ
+    JZ ENDLOOP
+
+    PUSHI 0
+    PUSHG 0
+    PUSHG 1
+    PUSHA CONVRT
+    CALL
+    POP 2
+
+    STOREG 2 // RESULT = CONVRT(...)
+
+    PUSHS "BASE "
+    WRITES
+    PUSHG 1
+    WRITEI
+    PUSHS ": "
+    WRITES
+    PUSHG 2
+    WRITEI
+    WRITELN
+
+    PUSHG 1
+    PUSHI 1
+    ADD
+    STOREG 1
+
+    JUMP LOOP
+
+ENDLOOP:
+    STOP
+
+CONVRT:
+    PUSHI 0 // QUOT
+    PUSHI 0 // REM
+    PUSHI 0 // POT
+    PUSHI 0 // VAL
+
+    // VAL = 0
+    PUSHI 0
+    STOREL 3
+
+    // POT = 1
+    PUSHI 1
+    STOREL 2
+
+    // QUOT = N
+    PUSHL -2
+    STOREL 0
+
+    l20:
+        PUSHL 0
+        PUSHI 0
+        SUP
+        JZ else
+        PUSHL 0
+        PUSHL -1
+        MOD
+
+        // REM = MOD(QUOT,B)
+        STOREL 1
+
+        PUSHL 1
+        PUSHL 2
+        MUL
+
+        PUSHL 3
+        ADD
+
+        STOREL 3
+
+        PUSHL 0
+        PUSHL -1
+        DIV
+        STOREL 0
+
+        PUSHL 2
+        PUSHI 10
+        MUL
+        STOREL 2
+
+        JUMP l20
+
+    else:
+        PUSHL 3
+        STOREL -3
+        POP 4
+        RETURN
+
+STOP
