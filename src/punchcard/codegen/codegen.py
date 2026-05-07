@@ -61,23 +61,14 @@ class PunchCardCodeGenerator:
         if not sym or sym.kind == SymbolKind.PARAMETER:
             return
 
-        # Só emitimos reserva de espaço se não for parâmetro
-        if self.current_scope.kind == "program":
-            if sym.kind == SymbolKind.ARRAY:
-                self.emitter.emit(f"PUSHN {sym.size}")
-            else:
-                self.emitter.emit("PUSHI 0")
+        if sym.kind == SymbolKind.ARRAY:
+            self.emitter.emit(f"PUSHN {sym.size}")
         else:
-            # Em subprogramas, reservamos para locals
-            if sym.kind == SymbolKind.ARRAY:
-                self.emitter.emit(f"PUSHN {sym.size}")
-            else:
-                self.emitter.emit("PUSHI 0")
+            self.emitter.emit("PUSHI 0")
 
     def visit_FunctionSubprogram(self, node: FunctionSubprogram):
         self.current_scope = getattr(node, "scope", None)
         self.emitter.emit(f"{node.name.lower()}:")
-        # O corpo contém as declarações que farão PUSH/PUSHN das locais
         node.body.accept(self)
         # Em Fortran, se não houver RETURN explícito, o END faz o return
         if not self.emitter.get_code().strip().endswith("RETURN"):
@@ -216,19 +207,19 @@ class PunchCardCodeGenerator:
 
     def visit_ReturnStmt(self, node: Optional[ReturnStmt]):
         if self.current_scope.kind == "function":
-            # Valor de retorno está na variável com o mesmo nome da função
-            sym = self.current_scope.lookup(self.current_scope.name)
-            self._emit_push(sym)
-            # Coloca no slot do primeiro argumento (fp[-(num_params-1)])
-            params = [
+            # Calcula o número de palavras a remover (variáveis locais)
+            local_vars = [
                 s
                 for s in self.current_scope.all_symbols()
-                if s.kind == SymbolKind.PARAMETER
+                if s.kind in (SymbolKind.VARIABLE, SymbolKind.ARRAY)
+                and s.name.upper() != self.current_scope.name.upper() # não pode ter o nome da função
             ]
-            num_params = len(params)
-            offset = -(num_params - 1) if num_params > 0 else 0
-            self.emitter.emit(f"STOREL {offset}")
 
+            # O tamanho total é a soma dos tamanhos de cada variável/array
+            total_size = sum(s.size for s in local_vars)
+
+            if total_size > 0:
+                self.emitter.emit(f"POP {total_size}")
         self.emitter.emit("RETURN")
 
     def visit_StopStmt(self, node: StopStmt):
@@ -260,14 +251,22 @@ class PunchCardCodeGenerator:
             self.emitter.emit("FCOS")
             return
 
+        # Subrotinas não têm valor de retorno, não guardamos espaço
+        func_sym = self.global_symbols.get(node.name.upper())
+        if func_sym and func_sym.kind == SymbolKind.FUNCTION:
+            self.emitter.emit(f"PUSHI 0")  # Espaço para o valor de retorno
+
         for arg in node.args:
             arg.accept(self)
         self.emitter.emit(f"PUSHA {node.name.lower()}")
         self.emitter.emit("CALL")
-        # Valor de retorno ficou no slot do primeiro argumento.
-        # Limpamos os outros N-1 argumentos.
-        if len(node.args) > 1:
-            self.emitter.emit(f"POP {len(node.args) - 1}")
+
+        # Limpar argumentos do stack após a chamada
+        # Se for função, o valor de retorno fica no topo, não limpamos.
+        if func_sym and func_sym.kind == SymbolKind.SUBROUTINE and node.args:
+            self.emitter.emit(f"POP {len(node.args)}")
+        elif len(node.args) > 1:
+            self.emitter.emit(f"POP {len(node.args)}")
         elif len(node.args) == 0:
             pass
 
@@ -288,7 +287,7 @@ class PunchCardCodeGenerator:
         if sym:
             self._emit_push(sym)
         else:
-            # Pode ser uma chamada de função sem argumentos (em F77 raro mas possível)
+            # Pode ser uma chamada de função sem argumentos
             pass
 
     def visit_ArrayAccess(self, node: ArrayAccess):
@@ -367,7 +366,7 @@ class PunchCardCodeGenerator:
         ]
         num_params = len(params)
         # Real index = index - (num_params - 1)
-        return sym.index - (num_params - 1) if num_params > 0 else sym.index + 1
+        return sym.index - (num_params + 1) if num_params > 0 else sym.index + 1
 
     def _get_expr_type(self, expr):
         if isinstance(expr, Literal):

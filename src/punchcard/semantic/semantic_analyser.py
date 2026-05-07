@@ -196,6 +196,17 @@ class PunchCardSemanticAnalyser:
     def visit_FunctionSubprogram(self, node: FunctionSubprogram) -> None:
         self.st.enter_scope(node.name, "function")
 
+        # O nome da função é válido como lvalue dentro da própria função
+        # (é assim que F77 devolve o valor de retorno: CONVRT = VAL).
+        self._safe(
+            self.st.declare,
+            Symbol(
+                name=node.name,
+                kind=SymbolKind.VARIABLE,
+                type=FortranType.from_token(node.return_type),
+            ),
+        )
+
         # Parâmetros formais entram no scope local com tipo UNKNOWN —
         # as Declaration dentro da função atribuirão o tipo correcto.
         for param in node.params:
@@ -207,17 +218,6 @@ class PunchCardSemanticAnalyser:
                     type=FortranType.UNKNOWN,
                 ),
             )
-
-        # O nome da função é válido como lvalue dentro da própria função
-        # (é assim que F77 devolve o valor de retorno: CONVRT = VAL).
-        self._safe(
-            self.st.declare,
-            Symbol(
-                name=node.name,
-                kind=SymbolKind.VARIABLE,
-                type=FortranType.from_token(node.return_type),
-            ),
-        )
 
         self._process_body(node.body)
         node.scope = self.st.exit_scope()
