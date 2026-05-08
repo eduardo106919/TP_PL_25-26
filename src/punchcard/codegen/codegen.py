@@ -1,3 +1,5 @@
+"""PunchCard code generator module."""
+
 from typing import Optional
 
 from punchcard.parser.ast import (
@@ -31,10 +33,7 @@ from punchcard.semantic.symbol_table import SymbolKind, FortranType, Symbol
 
 
 class PunchCardCodeGenerator:
-    """
-    Percorre a AST com o padrão Visitor e gera instruções EWVM.
-    Usa a informação de índices gerada na Symbol Table durante a análise semântica.
-    """
+    """Generate EWVM instructions by walking the AST."""
 
     def __init__(self):
         self.emitter = PunchCardEmitter()
