@@ -1,5 +1,31 @@
 from typing import Optional
-from punchcard.parser.ast import *
+
+from punchcard.parser.ast import (
+    Program,
+    MainProgram,
+    FunctionSubprogram,
+    SubroutineSubprogram,
+    Body,
+    Declaration,
+    VarDecl,
+    LabeledStatement,
+    AssignmentStmt,
+    GotoStmt,
+    IfStmt,
+    DoStmt,
+    ContinueStmt,
+    PrintStmt,
+    ReadStmt,
+    StopStmt,
+    ReturnStmt,
+    CallStmt,
+    FunctionCall,
+    BinaryOp,
+    UnaryOp,
+    Identifier,
+    ArrayAccess,
+    Literal,
+)
 from punchcard.codegen.emitter import PunchCardEmitter
 from punchcard.semantic.symbol_table import SymbolKind, FortranType, Symbol
 
@@ -206,13 +232,17 @@ class PunchCardCodeGenerator:
         self.emitter.emit(f"{end_label}:")
 
     def visit_ReturnStmt(self, node: Optional[ReturnStmt]):
-        if self.current_scope.kind == "function":
+        if (
+            self.current_scope.kind == "function"
+            or self.current_scope.kind == "subroutine"
+        ):
             # Calcula o número de palavras a remover (variáveis locais)
             local_vars = [
                 s
                 for s in self.current_scope.all_symbols()
                 if s.kind in (SymbolKind.VARIABLE, SymbolKind.ARRAY)
-                and s.name.upper() != self.current_scope.name.upper() # não pode ter o nome da função
+                and s.name.upper()
+                != self.current_scope.name.upper()  # não pode ter o nome da função
             ]
 
             # O tamanho total é a soma dos tamanhos de cada variável/array
@@ -254,7 +284,7 @@ class PunchCardCodeGenerator:
         # Subrotinas não têm valor de retorno, não guardamos espaço
         func_sym = self.global_symbols.get(node.name.upper())
         if func_sym and func_sym.kind == SymbolKind.FUNCTION:
-            self.emitter.emit(f"PUSHI 0")  # Espaço para o valor de retorno
+            self.emitter.emit("PUSHI 0")  # Espaço para o valor de retorno
 
         for arg in node.args:
             arg.accept(self)
@@ -365,8 +395,12 @@ class PunchCardCodeGenerator:
             if s.kind == SymbolKind.PARAMETER
         ]
         num_params = len(params)
-        # Real index = index - (num_params - 1)
-        return sym.index - (num_params + 1) if num_params > 0 else sym.index + 1
+
+        local_index = sym.index - num_params
+        if self.current_scope.kind == "function":
+            local_index -= 1
+
+        return local_index
 
     def _get_expr_type(self, expr):
         if isinstance(expr, Literal):

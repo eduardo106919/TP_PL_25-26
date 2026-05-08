@@ -3,7 +3,31 @@ import ply.yacc as yacc
 from punchcard.errors import ErrorManager
 from punchcard.lexer.definitions import TOKENS
 from punchcard.lexer.lexer import PunchCardLexer
-from punchcard.parser.ast import *
+from punchcard.parser.ast import (
+    Program,
+    MainProgram,
+    FunctionSubprogram,
+    SubroutineSubprogram,
+    Body,
+    Declaration,
+    VarDecl,
+    LabeledStatement,
+    AssignmentStmt,
+    GotoStmt,
+    IfStmt,
+    DoStmt,
+    ContinueStmt,
+    PrintStmt,
+    ReadStmt,
+    StopStmt,
+    ReturnStmt,
+    CallStmt,
+    BinaryOp,
+    UnaryOp,
+    Identifier,
+    ArrayAccess,
+    Literal,
+)
 
 
 class PunchCardParser:
