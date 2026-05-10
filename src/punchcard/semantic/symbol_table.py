@@ -37,33 +37,25 @@ class FortranType(Enum):
 
 
 class SymbolKind(Enum):
-    VARIABLE = auto()  # variável escalar
-    ARRAY = auto()  # variável array
-    FUNCTION = auto()  # INTEGER FUNCTION FOO(...)
-    SUBROUTINE = auto()  # SUBROUTINE BAR(...)
+    VARIABLE = auto()
+    ARRAY = auto()
+    FUNCTION = auto()
+    SUBROUTINE = auto()
     PARAMETER = auto()  # parâmetro formal de função/subrotina
 
 
 @dataclass
 class Symbol:
+    """Representa um identificador declarado: variável, array, função ou subrotina."""
+
     name: str
     kind: SymbolKind
     type: FortranType = FortranType.UNKNOWN
-
-    # Para arrays: lista de expressões de dimensão (guardadas como strings
-    # ou inteiros — a semântica resolve; None = escalar)
-    dimensions: Optional[list] = None
-
-    # Para funções e subrotinas: lista de nomes dos parâmetros formais
-    params: Optional[list[str]] = None
-
-    # Linha de declaração (útil para mensagens de erro)
-    declared_at: Optional[int] = None
-
-    # Índice no stack (gp[index] ou fp[index])
-    index: Optional[int] = None
-    # Tamanho total (1 para escalares, produto das dimensões para arrays)
-    size: int = 1
+    dimensions: Optional[list] = None      # dimensões do array; None se escalar
+    params: Optional[list[str]] = None     # nomes dos parâmetros formais
+    declared_at: Optional[int] = None      # linha de declaração
+    index: Optional[int] = None            # posição no stack frame (gp ou fp)
+    size: int = 1                          # 1 para escalares, produto das dimensões para arrays
 
     def is_callable(self) -> bool:
         return self.kind in (SymbolKind.FUNCTION, SymbolKind.SUBROUTINE)
@@ -81,23 +73,19 @@ class Symbol:
 
 
 class Scope:
-    """
-    Um scope corresponde a um program unit: programa principal,
-    função ou subrotina. Em Fortran 77 não existem escopos aninhados
-    dentro de um mesmo program unit (sem módulos nem blocos internos),
-    por isso um dicionário plano por scope é suficiente.
+    """Espaço de nomes de um program unit (programa, função ou subrotina).
 
-    Labels são guardados separadamente porque são um espaço de nomes
-    distinto dos identificadores (um label '10' e uma variável '10'
-    não colidem, embora em F77 os labels sejam sempre inteiros).
+    Em Fortran 77 não existem escopos aninhados dentro de um program unit,
+    por isso um dicionário plano é suficiente. Labels têm um espaço de nomes
+    próprio, separado dos identificadores.
     """
 
     def __init__(self, name: str, kind: str):
-        self.name = name  # nome do program unit (e.g. 'HELLO')
-        self.kind = kind  # 'program' | 'function' | 'subroutine'
+        self.name = name   # nome do program unit
+        self.kind = kind   # 'program' | 'function' | 'subroutine'
         self._symbols: dict[str, Symbol] = {}
         self._labels: set[int] = set()
-        self.next_index = 0  # próximo índice disponível no stack frame
+        self.next_index = 0  # próximo índice livre no stack frame
 
     def declare(self, symbol: Symbol) -> None:
         """
@@ -153,29 +141,15 @@ class Scope:
 
 
 class PunchCardSymbolTable:
-    """
-    Tabela de símbolos global do compilador.
+    """Tabela de símbolos do compilador.
 
-    Estrutura:
-    - _scopes: pilha de Scope activos durante a travessia da AST.
-      O topo (_scopes[-1]) é sempre o scope corrente.
-    - _global: dicionário de program units (programa, funções, subrotinas)
-      acessível de qualquer scope para resolver chamadas externas.
-
-    Uso típico na análise semântica:
-
-        st = SymbolTable()
-        st.enter_scope("HELLO", "program")
-        st.declare(Symbol("N", SymbolKind.VARIABLE, FortranType.INTEGER))
-        st.lookup("N")          # → Symbol(...)
-        st.declare_label(10)
-        st.check_label(10)
-        st.exit_scope()
+    Mantém uma pilha de scopes ativos (_scopes) e um dicionário global
+    com os program units (funções e subrotinas) visíveis de qualquer scope.
+    Inclui também as funções intrínsecas do Fortran 77 (MOD, SIN, etc.).
     """
 
     def __init__(self):
         self._scopes: list[Scope] = []
-        # program units globais: nome → Symbol (FUNCTION ou SUBROUTINE)
         self._global: dict[str, Symbol] = {}
         self._add_builtins()
 
