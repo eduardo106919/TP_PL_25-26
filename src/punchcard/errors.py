@@ -1,8 +1,11 @@
 class ErrorManager:
+    """Acumula erros e avisos encontrados durante a compilação."""
+
     def __init__(self):
         self.errors = []
 
     def _format_error(self, err: dict) -> str:
+        """Formata uma entrada de erro para apresentação no terminal."""
         kind = err.get("type", "Error")
         line = err.get("line")
         column = err.get("column")
@@ -15,6 +18,7 @@ class ErrorManager:
         return f"[{kind}] Line {line}, Col {column}: {message}"
 
     def _store(self, line, column, message, error_type, emitted=False):
+        """Guarda uma entrada de erro ou aviso na lista interna."""
         entry = {
             "line": line,
             "column": column,
@@ -33,6 +37,7 @@ class ErrorManager:
         error_type="Syntax Error",
         emit_immediately=False,
     ):
+        """Regista um erro. Se emit_immediately=True, imprime-o de imediato."""
         entry = self._store(line, column, message, error_type, emitted=False)
         if emit_immediately:
             print(self._format_error(entry))
@@ -46,12 +51,14 @@ class ErrorManager:
         warning_type="Semantic Warning",
         emit_immediately=False,
     ):
+        """Regista um aviso. Se emit_immediately=True, imprime-o de imediato."""
         entry = self._store(line, column, message, warning_type, emitted=False)
         if emit_immediately:
             print(self._format_error(entry))
             entry["emitted"] = True
 
     def report(self):
+        """Imprime todos os erros e avisos que ainda não foram mostrados."""
         pending = [err for err in self.errors if not err.get("emitted", False)]
         if not pending:
             return
@@ -61,4 +68,5 @@ class ErrorManager:
             err["emitted"] = True
 
     def has_errors(self):
+        """Devolve True se houver pelo menos um erro registado."""
         return len(self.errors) > 0
