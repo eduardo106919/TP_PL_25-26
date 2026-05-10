@@ -41,14 +41,9 @@ from punchcard.semantic.symbol_table import (
 
 from punchcard.errors import ErrorManager
 
-# ---------------------------------------------------------------------------
-# Tabela de compatibilidade de tipos para operações binárias
-#
-# Em Fortran 77 a hierarquia numérica é: INTEGER < REAL < DOUBLE PRECISION.
-# Quando dois operandos têm tipos diferentes, o resultado é promovido ao
-# tipo mais "alto" (type coercion implícita). Operações lógicas só aceitam
-# LOGICAL. Operações relacionais produzem sempre LOGICAL.
-# ---------------------------------------------------------------------------
+# Hierarquia numérica em F77: INTEGER < REAL < DOUBLE PRECISION.
+# Operações mistas promovem o resultado para o tipo mais alto (coerção implícita).
+# Operações lógicas exigem LOGICAL; relacionais produzem sempre LOGICAL.
 
 _NUMERIC = {FortranType.INTEGER, FortranType.REAL, FortranType.DOUBLE}
 
@@ -93,17 +88,10 @@ def _result_type(
 
 
 class PunchCardSemanticAnalyser:
-    """
-    Realiza a análise semântica do programa Fortran 77 percorrendo a AST
-    com o padrão Visitor.
+    """Analisa semanticamente a AST do programa Fortran 77.
 
-    Responsabilidades:
-    - Construir a symbol table (declaração de variáveis, funções, subrotinas)
-    - Verificar uso de variáveis não declaradas
-    - Verificar tipos em expressões e atribuições
-    - Validar labels (GOTO para label existente; DO label == CONTINUE label)
-    - Resolver a ambiguidade ArrayAccess vs FunctionCall
-    - Reportar todos os erros ao ErrorManager com emit_immediately=True
+    Constrói a symbol table, verifica tipos, valida labels e resolve
+    a ambiguidade entre acesso a arrays e chamadas de função.
     """
 
     def __init__(self, error_manager: ErrorManager):
@@ -112,7 +100,7 @@ class PunchCardSemanticAnalyser:
         self._expr_type: Optional[FortranType] = None
 
     def analyse(self, tree: ASTNode) -> None:
-        """Ponto de entrada: recebe a raiz da AST e arranca a travessia."""
+        """Ponto de entrada da análise semântica."""
         tree.accept(self)
 
     def _error(self, message: str, line: int = None, col: int = None) -> None:
@@ -124,11 +112,7 @@ class PunchCardSemanticAnalyser:
         )
 
     def _safe(self, fn, *args, **kwargs):
-        """
-        Executa fn(*args, **kwargs) absorvendo SymbolError e reportando-a
-        ao ErrorManager. Devolve o resultado ou None em caso de erro.
-        Permite que a análise continue após um erro sem propagar a excepção.
-        """
+        """Executa fn absorvendo SymbolError, para que a análise continue após erros."""
         try:
             return fn(*args, **kwargs)
         except SymbolError as e:
@@ -141,10 +125,7 @@ class PunchCardSemanticAnalyser:
                 node.accept(self)
 
     def _expr(self, node: ASTNode) -> Optional[FortranType]:
-        """
-        Visita um nó de expressão e devolve o seu tipo inferido.
-        Guarda também em self._expr_type para conveniência.
-        """
+        """Visita uma expressão e devolve o tipo inferido."""
         node.accept(self)
         return self._expr_type
 
@@ -157,8 +138,8 @@ class PunchCardSemanticAnalyser:
                 self._visit_list(val)
 
     def visit_Program(self, node: Program) -> None:
-        # Primeiro passo: regista globalmente todos os program units para que
-        # chamadas entre unidades funcionem independentemente da ordem no ficheiro.
+        # Regista primeiro todos os subprogramas globalmente, para que possam
+        # ser chamados independentemente da ordem em que aparecem no ficheiro.
         for unit in node.units:
             if isinstance(unit, FunctionSubprogram):
                 self._safe(
@@ -181,11 +162,10 @@ class PunchCardSemanticAnalyser:
                     ),
                 )
 
-        # Segundo passo: analisa cada unidade no seu próprio scope.
         for unit in node.units:
             unit.accept(self)
 
-        # Guarda a tabela de símbolos globais no nó Program para uso no CodeGen
+        # Expõe os símbolos globais no nó para que o CodeGen os consulte
         node.global_symbols = self.st._global
 
     def visit_MainProgram(self, node: MainProgram) -> None:
@@ -196,8 +176,8 @@ class PunchCardSemanticAnalyser:
     def visit_FunctionSubprogram(self, node: FunctionSubprogram) -> None:
         self.st.enter_scope(node.name, "function")
 
-        # O nome da função é válido como lvalue dentro da própria função
-        # (é assim que F77 devolve o valor de retorno: CONVRT = VAL).
+        # O nome da função é declarado como variável local — é assim que F77
+        # devolve o valor de retorno (ex: CONVRT = VAL).
         self._safe(
             self.st.declare,
             Symbol(
@@ -207,16 +187,11 @@ class PunchCardSemanticAnalyser:
             ),
         )
 
-        # Parâmetros formais entram no scope local com tipo UNKNOWN —
-        # as Declaration dentro da função atribuirão o tipo correcto.
+        # Parâmetros entram com tipo UNKNOWN; as declarações do corpo atribuem o tipo.
         for param in node.params:
             self._safe(
                 self.st.declare,
-                Symbol(
-                    name=param,
-                    kind=SymbolKind.PARAMETER,
-                    type=FortranType.UNKNOWN,
-                ),
+                Symbol(name=param, kind=SymbolKind.PARAMETER, type=FortranType.UNKNOWN),
             )
 
         self._process_body(node.body)
@@ -239,11 +214,7 @@ class PunchCardSemanticAnalyser:
         node.scope = self.st.exit_scope()
 
     def _process_body(self, body: Body) -> None:
-        """
-        Em Fortran 77 todas as declarações precedem os statements.
-        Processamos as declarações primeiro para que qualquer statement
-        possa referenciar qualquer variável declarada no mesmo scope.
-        """
+        """Processa declarações antes dos statements (regra do F77)."""
         for decl in body.declarations:
             decl.accept(self)
         for stmt in body.statements:
@@ -418,11 +389,7 @@ class PunchCardSemanticAnalyser:
         self._expr_type = sym.type if sym else FortranType.UNKNOWN
 
     def visit_ArrayAccess(self, node: ArrayAccess) -> None:
-        """
-        Resolve a ambiguidade ArrayAccess vs FunctionCall consultando a
-        symbol table. Se o nome estiver declarado como FUNCTION, trata
-        como chamada de função.
-        """
+        """Resolve a ambiguidade nome(x): array ou chamada de função."""
         sym = self._safe(self.st.lookup_or_raise, node.name)
         if sym is None:
             self._expr_type = FortranType.UNKNOWN
