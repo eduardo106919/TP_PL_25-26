@@ -1,11 +1,6 @@
 # Fortran 77 CFG
 
 Context-Free Grammar do compilador PunchCard para Fortran 77.
-Corresponde diretamente às regras do `parser.py` (PLY/YACC).
-
----
-
-## Estrutura do Programa
 
 ```
 program : program_unit_list
@@ -22,11 +17,7 @@ main_program : PROGRAM IDENTIFIER body END
 function_subprogram : type_spec FUNCTION IDENTIFIER '(' param_list ')' body END
 
 subroutine_subprogram : SUBROUTINE IDENTIFIER '(' param_list ')' body END
-```
 
-## Corpo e Declarações
-
-```
 body : declaration_section statement_section
 
 declaration_section : empty
@@ -49,12 +40,6 @@ var_decl : IDENTIFIER
 dim_list : expr
          | dim_list ',' expr
 
-empty :
-```
-
-## Statements
-
-```
 statement_section : empty
                   | statement_section statement
 
@@ -124,11 +109,7 @@ stop_stmt : STOP
 return_stmt : RETURN
 
 call_stmt : CALL IDENTIFIER '(' arg_list ')'
-```
 
-## Listas de Parâmetros e Argumentos
-
-```
 param_list : empty
            | param_list_mult
 
@@ -146,11 +127,7 @@ output_list : expr
 
 input_list : lvalue
            | input_list ',' lvalue
-```
 
-## Expressões
-
-```
 expr : logical_expr
 
 logical_expr : logical_expr LOP_OR logical_and
@@ -191,4 +168,6 @@ primary : '(' expr ')'
         | LIT_STRING | LIT_BOOLEAN
         | IDENTIFIER
         | IDENTIFIER '(' arg_list ')'
+
+empty :
 ```
