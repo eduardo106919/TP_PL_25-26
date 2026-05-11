@@ -83,8 +83,32 @@ if_stmt : IF '(' expr ')' THEN statement_section ENDIF
         | IF '(' expr ')' THEN statement_section ELSE statement_section ENDIF
         | IF '(' expr ')' statement_body
 
-do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr statement_section LIT_INT CONTINUE
-        | DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr statement_section LIT_INT CONTINUE
+do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr do_body
+        | DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr do_body
+
+do_body : do_inner_stmts LIT_INT CONTINUE
+
+do_inner_stmts : empty
+               | do_inner_stmts do_inner_statement
+
+do_inner_statement : assignment_stmt
+                   | goto_stmt
+                   | if_stmt
+                   | do_stmt
+                   | print_stmt
+                   | read_stmt
+                   | stop_stmt
+                   | return_stmt
+                   | call_stmt
+                   | LIT_INT assignment_stmt
+                   | LIT_INT goto_stmt
+                   | LIT_INT if_stmt
+                   | LIT_INT do_stmt
+                   | LIT_INT print_stmt
+                   | LIT_INT read_stmt
+                   | LIT_INT stop_stmt
+                   | LIT_INT return_stmt
+                   | LIT_INT call_stmt
 
 continue_stmt : CONTINUE
 
