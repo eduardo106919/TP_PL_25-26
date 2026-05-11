@@ -123,14 +123,20 @@ stop_stmt : STOP
 
 return_stmt : RETURN
 
-param_list : param_list_mult
-           |
+call_stmt : CALL IDENTIFIER '(' arg_list ')'
+```
+
+## Listas de Parâmetros e Argumentos
+
+```
+param_list : empty
+           | param_list_mult
 
 param_list_mult : IDENTIFIER
-                 | param_list_mult ',' IDENTIFIER
+                | param_list_mult ',' IDENTIFIER
 
-arg_list : arg_list_mult
-         |
+arg_list : empty
+         | arg_list_mult
 
 arg_list_mult : expr
               | arg_list_mult ',' expr
