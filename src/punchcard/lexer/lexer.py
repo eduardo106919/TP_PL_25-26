@@ -6,10 +6,16 @@ from punchcard.errors import ErrorManager
 
 
 class PunchCardLexer:
+    """Analisador léxico para Fortran 77 (formato livre).
+
+    Converte o código fonte numa sequência de tokens usando PLY.
+    Suporta keywords, identificadores, literais numéricos e de texto,
+    operadores aritméticos, relacionais e lógicos.
+    """
 
     tokens = TOKENS
     literals = LITERALS
-    t_ignore = " \t"
+    t_ignore = " \t"  # espaços e tabs são ignorados entre tokens
 
     def __init__(self, error_manager: ErrorManager = None):
         self.lexer = None
@@ -18,6 +24,8 @@ class PunchCardLexer:
     def t_DT_DOUBLE_PRECISION(self, t: lex.LexToken):
         r"\bDOUBLE PRECISION\b"
         return t
+
+
 
     def t_OP_POWER(self, t: lex.LexToken) -> lex.LexToken:
         r"\*\*"
@@ -67,16 +75,18 @@ class PunchCardLexer:
 
     def t_LIT_STRING(self, t: lex.LexToken) -> lex.LexToken:
         r"'[^']*'"
-        t.value = t.value[1:-1]
+        t.value = t.value[1:-1]  # remove as aspas delimitadoras
         return t
 
     def t_LIT_DOUBLE(self, t: lex.LexToken) -> lex.LexToken:
+        """Literais double precision com notação D/d (ex: 4.56D2)."""
         r"\b[+-]?(\d+\.\d*|\.\d+|\d+)[Dd][+-]?\d+\b"
         normalized_value = t.value.replace("D", "E").replace("d", "e")
         t.value = float(normalized_value)
         return t
 
     def t_LIT_FLOAT(self, t: lex.LexToken) -> lex.LexToken:
+        """Literais reais com ponto decimal ou notação E (ex: 1.5, 2.0E3)."""
         r"\b[+-]?((\d+\.\d*|\.\d+)([Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)\b"
         t.value = float(t.value)
         return t
@@ -87,26 +97,9 @@ class PunchCardLexer:
         return t
 
     def t_IDENTIFIER(self, t: lex.LexToken) -> lex.LexToken:
-        # must start with a letter and can have numbers
         r"\b[a-zA-Z][a-zA-Z0-9]*\b"
         t.value = t.value.upper()
-
-        # check for reserved words
         t.type = KEYWORDS.get(t.value, "IDENTIFIER")
-
-        # identifiers can't have more than 31 characters (modern Fortran limit)
-        # if t.type == "IDENTIFIER" and len(t.value) > 31:
-        #     column = self.find_column(t.lexer.lexdata, t)
-        #     if self.error_manager:
-        #         self.error_manager.add_error(
-        #             t.lineno,
-        #             column,
-        #             f"Identifier '{t.value}' exceeds 31 characters",
-        #             "Lexical Error",
-        #         )
-        #     t.type = "ILLEGAL"
-        #     return None
-
         return t
 
     def t_newline(self, t: lex.LexToken) -> None:
@@ -115,10 +108,12 @@ class PunchCardLexer:
 
     @staticmethod
     def find_column(data: str, token: lex.LexToken):
+        """Calcula a coluna de um token a partir da posição no texto."""
         line_start = data.rfind("\n", 0, token.lexpos) + 1
         return (token.lexpos - line_start) + 1
 
     def t_error(self, t: lex.LexToken) -> None:
+        """Chamado pelo PLY quando encontra um carácter não reconhecido."""
         column = self.find_column(t.lexer.lexdata, t)
 
         if self.error_manager:
@@ -133,5 +128,6 @@ class PunchCardLexer:
         t.lexer.skip(1)
 
     def build(self, **kwargs) -> lex.Lexer:
+        """Constrói e devolve o lexer PLY pronto a usar."""
         self.lexer = lex.lex(module=self, reflags=re.IGNORECASE, **kwargs)
         return self.lexer

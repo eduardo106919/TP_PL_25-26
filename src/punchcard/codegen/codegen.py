@@ -33,7 +33,11 @@ from punchcard.semantic.symbol_table import SymbolKind, FortranType, Symbol
 
 
 class PunchCardCodeGenerator:
-    """Generate EWVM instructions by walking the AST."""
+    """Gera código EWVM percorrendo a AST com o padrão Visitor.
+
+    O programa principal é emitido entre START e STOP.
+    Funções e subrotinas são emitidas a seguir, cada uma com o seu label.
+    """
 
     def __init__(self):
         self.emitter = PunchCardEmitter()
@@ -45,23 +49,20 @@ class PunchCardCodeGenerator:
         self._label_count += 1
         return f"{prefix}{self._label_count}".lower()
 
-    # Entrada principal
     def generate(self, program: Program) -> str:
+        """Ponto de entrada: recebe a AST e devolve o código EWVM como string."""
         self.visit_Program(program)
         return self.emitter.get_code()
 
-    # Programa
     def visit_Program(self, node: Program):
         self.global_symbols = getattr(node, "global_symbols", {})
 
-        # Procura o MainProgram para começar a execução
         main = next((u for u in node.units if isinstance(u, MainProgram)), None)
         if main:
             self.emitter.emit("START")
             main.accept(self)
             self.emitter.emit("STOP")
 
-        # Subprogramas (funções e subrotinas)
         for unit in node.units:
             if not isinstance(unit, MainProgram):
                 unit.accept(self)
@@ -76,12 +77,12 @@ class PunchCardCodeGenerator:
         for stmt in node.statements:
             stmt.accept(self)
 
-    # Declarações
     def visit_Declaration(self, node: Declaration):
         for var in node.variables:
             var.accept(self)
 
     def visit_VarDecl(self, node: VarDecl):
+        """Reserva espaço no stack para cada variável declarada."""
         sym = self.current_scope.lookup(node.name)
         if not sym or sym.kind == SymbolKind.PARAMETER:
             return
@@ -95,7 +96,7 @@ class PunchCardCodeGenerator:
         self.current_scope = getattr(node, "scope", None)
         self.emitter.emit(f"{node.name.lower()}:")
         node.body.accept(self)
-        # Em Fortran, se não houver RETURN explícito, o END faz o return
+        # Se não houver RETURN explícito, o END implica retorno
         if not self.emitter.get_code().strip().endswith("RETURN"):
             self.visit_ReturnStmt(None)
 
@@ -107,17 +108,15 @@ class PunchCardCodeGenerator:
             self.visit_ReturnStmt(None)
 
     def visit_AssignmentStmt(self, node: AssignmentStmt):
-        # Avalia o valor (fica no topo do stack)
-        node.value.accept(self)
+        node.value.accept(self)  # valor fica no topo do stack
 
-        # LValue
         if isinstance(node.lvalue, str):
             sym = self.current_scope.lookup(node.lvalue)
             self._emit_store(sym)
         elif isinstance(node.lvalue, ArrayAccess):
             sym = self.current_scope.lookup(node.lvalue.name)
             self._emit_addr(sym)
-            # Avalia primeiro índice (F77 é 1-based)
+            # F77 usa indexação 1-based; subtrai 1 para obter offset 0-based
             node.lvalue.indices[0].accept(self)
             self.emitter.emit("PUSHI 1")
             self.emitter.emit("SUB")
@@ -163,29 +162,24 @@ class PunchCardCodeGenerator:
                 self.emitter.emit("STORE 0")
 
     def visit_DoStmt(self, node: DoStmt):
+        """DO label var = start, stop [, step]: inicializa, testa e incrementa."""
         start_label = self._new_label("dostart")
         end_label = self._new_label("doend")
 
         sym = self.current_scope.lookup(node.var)
 
-        # 1. Inicialização: var = start
         node.start.accept(self)
         self._emit_store(sym)
 
-        # 2. Início do Loop
         self.emitter.emit(f"{start_label}:")
-
-        # 3. Condição: var <= stop
         self._emit_push(sym)
         node.stop.accept(self)
         self.emitter.emit("INFEQ")
         self.emitter.emit(f"JZ {end_label}")
 
-        # 4. Corpo
         for stmt in node.body:
             stmt.accept(self)
 
-        # 5. Incremento: var = var + step (default 1)
         self._emit_push(sym)
         if node.step:
             node.step.accept(self)
@@ -194,10 +188,7 @@ class PunchCardCodeGenerator:
         self.emitter.emit("ADD")
         self._emit_store(sym)
 
-        # 6. Jump de volta
         self.emitter.emit(f"JUMP {start_label}")
-
-        # 7. Fim do Loop
         self.emitter.emit(f"{end_label}:")
 
     def visit_LabeledStatement(self, node: LabeledStatement):
@@ -231,22 +222,15 @@ class PunchCardCodeGenerator:
         self.emitter.emit(f"{end_label}:")
 
     def visit_ReturnStmt(self, node: Optional[ReturnStmt]):
-        if (
-            self.current_scope.kind == "function"
-            or self.current_scope.kind == "subroutine"
-        ):
-            # Calcula o número de palavras a remover (variáveis locais)
+        """Remove as variáveis locais do stack antes de fazer RETURN."""
+        if self.current_scope.kind in ("function", "subroutine"):
             local_vars = [
                 s
                 for s in self.current_scope.all_symbols()
                 if s.kind in (SymbolKind.VARIABLE, SymbolKind.ARRAY)
-                and s.name.upper()
-                != self.current_scope.name.upper()  # não pode ter o nome da função
+                and s.name.upper() != self.current_scope.name.upper()
             ]
-
-            # O tamanho total é a soma dos tamanhos de cada variável/array
             total_size = sum(s.size for s in local_vars)
-
             if total_size > 0:
                 self.emitter.emit(f"POP {total_size}")
         self.emitter.emit("RETURN")
@@ -264,8 +248,10 @@ class PunchCardCodeGenerator:
             self.emitter.emit(f"POP {len(node.args)}")
 
     def visit_FunctionCall(self, node: FunctionCall):
-        # Built-ins directos
+        """Chamada de função como expressão. Built-ins são tratados diretamente."""
         name = node.name.upper()
+
+        # Built-ins mapeados para instruções EWVM
         if name == "MOD":
             node.args[0].accept(self)
             node.args[1].accept(self)
@@ -280,24 +266,19 @@ class PunchCardCodeGenerator:
             self.emitter.emit("FCOS")
             return
 
-        # Subrotinas não têm valor de retorno, não guardamos espaço
         func_sym = self.global_symbols.get(node.name.upper())
         if func_sym and func_sym.kind == SymbolKind.FUNCTION:
-            self.emitter.emit("PUSHI 0")  # Espaço para o valor de retorno
+            self.emitter.emit("PUSHI 0")  # slot para o valor de retorno
 
         for arg in node.args:
             arg.accept(self)
         self.emitter.emit(f"PUSHA {node.name.lower()}")
         self.emitter.emit("CALL")
 
-        # Limpar argumentos do stack após a chamada
-        # Se for função, o valor de retorno fica no topo, não limpamos.
         if func_sym and func_sym.kind == SymbolKind.SUBROUTINE and node.args:
             self.emitter.emit(f"POP {len(node.args)}")
         elif len(node.args) > 1:
             self.emitter.emit(f"POP {len(node.args)}")
-        elif len(node.args) == 0:
-            pass
 
     # Expressões
     def visit_Literal(self, node: Literal):
@@ -360,8 +341,10 @@ class PunchCardCodeGenerator:
         elif node.op == ".NOT.":
             self.emitter.emit("NOT")
 
-    # Helpers
+    # --- Helpers de emissão ---
+
     def _emit_store(self, sym: Symbol):
+        """Emite STOREG (programa principal) ou STOREL (função/subrotina)."""
         if self.current_scope.kind == "program":
             self.emitter.emit(f"STOREG {sym.index}")
         else:
@@ -369,6 +352,7 @@ class PunchCardCodeGenerator:
             self.emitter.emit(f"STOREL {idx}")
 
     def _emit_push(self, sym: Symbol):
+        """Emite PUSHG (programa principal) ou PUSHL (função/subrotina)."""
         if self.current_scope.kind == "program":
             self.emitter.emit(f"PUSHG {sym.index}")
         else:
@@ -376,6 +360,7 @@ class PunchCardCodeGenerator:
             self.emitter.emit(f"PUSHL {idx}")
 
     def _emit_addr(self, sym: Symbol):
+        """Coloca no stack o endereço de uma variável (para acesso a arrays)."""
         if self.current_scope.kind == "program":
             self.emitter.emit("PUSHGP")
             self.emitter.emit(f"PUSHI {sym.index}")
@@ -386,19 +371,15 @@ class PunchCardCodeGenerator:
         self.emitter.emit("PADD")
 
     def _get_local_index(self, sym: Symbol) -> int:
-        """Traduz o índice da Symbol Table para o índice relativo ao fp."""
-        # Se for parâmetro ou local, precisamos de ajustar relativo ao topo dos args
+        """Converte o índice da symbol table para índice relativo ao fp."""
         params = [
             s
             for s in self.current_scope.all_symbols()
             if s.kind == SymbolKind.PARAMETER
         ]
-        num_params = len(params)
-
-        local_index = sym.index - num_params
+        local_index = sym.index - len(params)
         if self.current_scope.kind == "function":
             local_index -= 1
-
         return local_index
 
     def _get_expr_type(self, expr):

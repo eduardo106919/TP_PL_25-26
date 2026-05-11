@@ -1,3 +1,5 @@
+# Palavras reservadas do Fortran 77 e o tipo de token correspondente.
+# O lexer usa este dicionário para distinguir identificadores de keywords.
 KEYWORDS = {
     "PROGRAM": "PROGRAM",
     "FUNCTION": "FUNCTION",
@@ -22,10 +24,12 @@ KEYWORDS = {
     "CHARACTER": "DT_CHARACTER",
 }
 
+# Lista completa de tokens reconhecidos pelo lexer.
+# O PLY exige que esta variável exista com este nome exato.
 TOKENS = (
-    # operators
+    # operador de potência
     "OP_POWER",
-    # logical operators
+    # operadores relacionais e lógicos
     "LOP_EQ",
     "LOP_NE",
     "LOP_LE",
@@ -35,14 +39,15 @@ TOKENS = (
     "LOP_AND",
     "LOP_OR",
     "LOP_NOT",
-    # literal values
+    # literais
     "LIT_INT",
     "LIT_FLOAT",
     "LIT_DOUBLE",
     "LIT_STRING",
     "LIT_BOOLEAN",
-    # identifiers
+    # identificadores
     "IDENTIFIER",
 ) + tuple(KEYWORDS.values())
 
+# Caracteres simples tratados diretamente como tokens pelo PLY.
 LITERALS = "(),=+-*/"
