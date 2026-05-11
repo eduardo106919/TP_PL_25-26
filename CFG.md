@@ -162,10 +162,10 @@ logical_and : logical_and LOP_AND logical_not
 logical_not : LOP_NOT logical_not
             | comparison
 
-comparison : arith_expr relop arith_expr
+comparison : comparison rel_op arith_expr
            | arith_expr
 
-relop : LOP_EQ | LOP_NE | LOP_LE | LOP_LT | LOP_GE | LOP_GT
+rel_op : LOP_EQ | LOP_NE | LOP_LE | LOP_LT | LOP_GE | LOP_GT
 
 arith_expr : arith_expr arith_op term
            | term
