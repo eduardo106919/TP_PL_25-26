@@ -55,8 +55,8 @@ empty :
 ## Statements
 
 ```
-statement_section : statement_section statement
-                  |
+statement_section : empty
+                  | statement_section statement
 
 statement : LIT_INT statement_body
           | statement_body
