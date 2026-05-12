@@ -157,15 +157,8 @@ class PunchCardSymbolTable:
         """Regista funções intrínsecas do Fortran 77."""
         builtins = [
             Symbol("MOD", SymbolKind.FUNCTION, FortranType.INTEGER, params=["A", "B"]),
-            Symbol("ABS", SymbolKind.FUNCTION, FortranType.INTEGER, params=["A"]),
-            Symbol("SQRT", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
             Symbol("SIN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
             Symbol("COS", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
-            Symbol("TAN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
-            Symbol("ATAN", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
-            Symbol("EXP", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
-            Symbol("LOG", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
-            Symbol("LOG10", SymbolKind.FUNCTION, FortranType.REAL, params=["A"]),
         ]
         for b in builtins:
             self._global[b.name.upper()] = b

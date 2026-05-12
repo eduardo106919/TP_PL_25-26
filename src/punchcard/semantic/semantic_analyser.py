@@ -1,5 +1,4 @@
 from __future__ import annotations
-from platform import node
 from typing import Optional
 
 from punchcard.parser.ast import (
@@ -10,7 +9,6 @@ from punchcard.parser.ast import (
     SubroutineSubprogram,
     Body,
     Declaration,
-    VarDecl,
     LabeledStatement,
     AssignmentStmt,
     GotoStmt,
@@ -36,7 +34,6 @@ from punchcard.semantic.symbol_table import (
     SymbolKind,
     FortranType,
     SymbolError,
-    Scope,
 )
 
 from punchcard.errors import ErrorManager

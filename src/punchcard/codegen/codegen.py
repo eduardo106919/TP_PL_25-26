@@ -89,6 +89,8 @@ class PunchCardCodeGenerator:
 
         if sym.kind == SymbolKind.ARRAY:
             self.emitter.emit(f"PUSHN {sym.size}")
+        elif sym.type in (FortranType.REAL, FortranType.DOUBLE):
+            self.emitter.emit("PUSHF 0.0")
         else:
             self.emitter.emit("PUSHI 0")
 
@@ -268,7 +270,10 @@ class PunchCardCodeGenerator:
 
         func_sym = self.global_symbols.get(node.name.upper())
         if func_sym and func_sym.kind == SymbolKind.FUNCTION:
-            self.emitter.emit("PUSHI 0")  # slot para o valor de retorno
+            if func_sym.type in (FortranType.REAL, FortranType.DOUBLE):
+                self.emitter.emit("PUSHF 0.0")
+            else:
+                self.emitter.emit("PUSHI 0")
 
         for arg in node.args:
             arg.accept(self)
@@ -277,7 +282,7 @@ class PunchCardCodeGenerator:
 
         if func_sym and func_sym.kind == SymbolKind.SUBROUTINE and node.args:
             self.emitter.emit(f"POP {len(node.args)}")
-        elif len(node.args) > 1:
+        elif len(node.args) > 0:
             self.emitter.emit(f"POP {len(node.args)}")
 
     # Expressões
@@ -313,21 +318,47 @@ class PunchCardCodeGenerator:
     def visit_BinaryOp(self, node: BinaryOp):
         node.left.accept(self)
         node.right.accept(self)
-        op_map = {
-            "+": "ADD",
-            "-": "SUB",
-            "*": "MUL",
-            "/": "DIV",
-            ".EQ.": "EQUAL",
-            ".NE.": lambda: (self.emitter.emit("EQUAL"), self.emitter.emit("NOT")),
-            ".LT.": "INF",
-            ".LE.": "INFEQ",
-            ".GT.": "SUP",
-            ".GE.": "SUPEQ",
-            ".AND.": "AND",
-            ".OR.": "OR",
-        }
-        instr = op_map.get(node.op)
+
+        # Determina o tipo da expressão para escolher as instruções corretas
+        left_type = self._get_expr_type(node.left)
+        right_type = self._get_expr_type(node.right)
+        is_float = left_type in (FortranType.REAL, FortranType.DOUBLE) or \
+                   right_type in (FortranType.REAL, FortranType.DOUBLE)
+
+        op = node.op.upper()
+
+        if is_float:
+            op_map = {
+                "+": "FADD",
+                "-": "FSUB",
+                "*": "FMUL",
+                "/": "FDIV",
+                ".EQ.": "EQUAL",
+                ".NE.": lambda: (self.emitter.emit("EQUAL"), self.emitter.emit("NOT")),
+                ".LT.": "FINF",
+                ".LE.": "FINFEQ",
+                ".GT.": "FSUP",
+                ".GE.": "FSUPEQ",
+                ".AND.": "AND",
+                ".OR.": "OR",
+            }
+        else:
+            op_map = {
+                "+": "ADD",
+                "-": "SUB",
+                "*": "MUL",
+                "/": "DIV",
+                ".EQ.": "EQUAL",
+                ".NE.": lambda: (self.emitter.emit("EQUAL"), self.emitter.emit("NOT")),
+                ".LT.": "INF",
+                ".LE.": "INFEQ",
+                ".GT.": "SUP",
+                ".GE.": "SUPEQ",
+                ".AND.": "AND",
+                ".OR.": "OR",
+            }
+
+        instr = op_map.get(op)
         if callable(instr):
             instr()
         elif instr:
