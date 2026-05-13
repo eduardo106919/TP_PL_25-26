@@ -79,14 +79,12 @@ class PunchCardLexer:
         return t
 
     def t_LIT_DOUBLE(self, t: lex.LexToken) -> lex.LexToken:
-        """Literais double precision com notação D/d (ex: 4.56D2)."""
         r"\b[+-]?(\d+\.\d*|\.\d+|\d+)[Dd][+-]?\d+\b"
         normalized_value = t.value.replace("D", "E").replace("d", "e")
         t.value = float(normalized_value)
         return t
 
     def t_LIT_FLOAT(self, t: lex.LexToken) -> lex.LexToken:
-        """Literais reais com ponto decimal ou notação E (ex: 1.5, 2.0E3)."""
         r"\b[+-]?((\d+\.\d*|\.\d+)([Ee][+-]?\d+)?|\d+[Ee][+-]?\d+)\b"
         t.value = float(t.value)
         return t
