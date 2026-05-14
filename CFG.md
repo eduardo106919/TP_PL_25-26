@@ -1,6 +1,6 @@
-# Fortan 77 CFG
+# Fortran 77 CFG
 
-Fortran 77 Context Free Grammar:
+Context-Free Grammar do compilador PunchCard para Fortran 77.
 
 ```
 program : program_unit_list
@@ -20,8 +20,8 @@ subroutine_subprogram : SUBROUTINE IDENTIFIER '(' param_list ')' body END
 
 body : declaration_section statement_section
 
-declaration_section : declaration_section declaration
-                    |
+declaration_section : empty
+                    | declaration_section declaration
 
 declaration : type_spec var_list
 
@@ -40,8 +40,8 @@ var_decl : IDENTIFIER
 dim_list : expr
          | dim_list ',' expr
 
-statement_section : statement_section statement
-                  |
+statement_section : empty
+                  | statement_section statement
 
 statement : LIT_INT statement_body
           | statement_body
@@ -68,8 +68,32 @@ if_stmt : IF '(' expr ')' THEN statement_section ENDIF
         | IF '(' expr ')' THEN statement_section ELSE statement_section ENDIF
         | IF '(' expr ')' statement_body
 
-do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr statement_section LIT_INT CONTINUE
-        | DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr statement_section LIT_INT CONTINUE
+do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr do_body
+        | DO LIT_INT IDENTIFIER '=' expr ',' expr ',' expr do_body
+
+do_body : do_inner_stmts LIT_INT CONTINUE
+
+do_inner_stmts : empty
+               | do_inner_stmts do_inner_statement
+
+do_inner_statement : assignment_stmt
+                   | goto_stmt
+                   | if_stmt
+                   | do_stmt
+                   | print_stmt
+                   | read_stmt
+                   | stop_stmt
+                   | return_stmt
+                   | call_stmt
+                   | LIT_INT assignment_stmt
+                   | LIT_INT goto_stmt
+                   | LIT_INT if_stmt
+                   | LIT_INT do_stmt
+                   | LIT_INT print_stmt
+                   | LIT_INT read_stmt
+                   | LIT_INT stop_stmt
+                   | LIT_INT return_stmt
+                   | LIT_INT call_stmt
 
 continue_stmt : CONTINUE
 
@@ -84,14 +108,16 @@ stop_stmt : STOP
 
 return_stmt : RETURN
 
-param_list : param_list_mult
-           |
+call_stmt : CALL IDENTIFIER '(' arg_list ')'
+
+param_list : empty
+           | param_list_mult
 
 param_list_mult : IDENTIFIER
-                 | param_list_mult ',' IDENTIFIER
+                | param_list_mult ',' IDENTIFIER
 
-arg_list : arg_list_mult
-         |
+arg_list : empty
+         | arg_list_mult
 
 arg_list_mult : expr
               | arg_list_mult ',' expr
@@ -104,7 +130,7 @@ input_list : lvalue
 
 expr : logical_expr
 
-logical_expr : logical_expr LOP_OR  logical_and
+logical_expr : logical_expr LOP_OR logical_and
              | logical_and
 
 logical_and : logical_and LOP_AND logical_not
@@ -113,10 +139,10 @@ logical_and : logical_and LOP_AND logical_not
 logical_not : LOP_NOT logical_not
             | comparison
 
-comparison : arith_expr relop arith_expr
+comparison : comparison rel_op arith_expr
            | arith_expr
 
-relop : LOP_EQ | LOP_NE | LOP_LE | LOP_LT | LOP_GE | LOP_GT
+rel_op : LOP_EQ | LOP_NE | LOP_LE | LOP_LT | LOP_GE | LOP_GT
 
 arith_expr : arith_expr arith_op term
            | term
@@ -143,4 +169,5 @@ primary : '(' expr ')'
         | IDENTIFIER
         | IDENTIFIER '(' arg_list ')'
 
+empty :
 ```
