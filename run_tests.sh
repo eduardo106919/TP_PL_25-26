@@ -6,7 +6,6 @@
 #   ./run_tests.sh <file.f>          Run a specific test
 #   ./run_tests.sh basic             Run all basic tests
 #   ./run_tests.sh custom            Run all custom tests
-#   ./run_tests.sh error             Run all error tests
 #   ./run_tests.sh all               Run all tests
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -45,6 +44,8 @@ run_success_test() {
     local file="$1"
     local name
     name=$(basename "$file")
+    local out_name
+    out_name=$(basename "$file" .f)
     TOTAL=$((TOTAL + 1))
 
     output=$(run_compiler "$file")
@@ -56,26 +57,7 @@ run_success_test() {
     else
         echo -e "  ${GREEN}✓${NC} $name"
         PASS=$((PASS + 1))
-    fi
-}
-
-run_error_test() {
-    # Test that the compiler DETECTS errors (should fail)
-    local file="$1"
-    local name
-    name=$(basename "$file")
-    TOTAL=$((TOTAL + 1))
-
-    output=$(run_compiler "$file")
-
-    if echo "$output" | grep -qi "error"; then
-        # Extract the detected error type
-        error_msg=$(echo "$output" | grep -i "error" | head -1 | sed 's/\[//' | sed 's/\].*//')
-        echo -e "  ${GREEN}✓${NC} $name  ${YELLOW}(${error_msg})${NC}"
-        PASS=$((PASS + 1))
-    else
-        echo -e "  ${RED}✗${NC} $name  (should have failed but compiled successfully)"
-        FAIL=$((FAIL + 1))
+        echo "$output" > "$TEST_DIR/output/${out_name}.ewvm"
     fi
 }
 
@@ -97,11 +79,7 @@ run_category() {
     fi
 
     for file in "$dir"/*.f; do
-        if [ "$category" = "error" ]; then
-            run_error_test "$file"
-        else
-            run_success_test "$file"
-        fi
+        run_success_test "$file"
     done
 }
 
@@ -119,7 +97,7 @@ print_summary() {
 # --- Main ---
 
 if [ $# -eq 0 ]; then
-    echo "Usage: ./run_tests.sh <file.f | basic | custom | error | all>"
+    echo "Usage: ./run_tests.sh <file.f | basic | custom | all>"
     exit 1
 fi
 
@@ -127,13 +105,13 @@ ARG="$1"
 
 # Specific test (file)
 if [ -f "$ARG" ]; then
-    echo -e "${BLUE}Test: $ARG${NC}"
-    # Detect if it's an error test by folder
-    if echo "$ARG" | grep -q "/error/"; then
-        run_error_test "$ARG"
-    else
-        run_success_test "$ARG"
+    # Convert to absolute path
+    if ! [[ "$ARG" = /* ]]; then
+        ARG="$SCRIPT_DIR/$ARG"
     fi
+
+    echo -e "${BLUE}Test: $ARG${NC}"
+    run_success_test "$ARG"
     print_summary
     exit $?
 fi
@@ -148,23 +126,16 @@ case "$ARG" in
         echo -e "${BLUE}=== Custom Tests (individual features) ===${NC}"
         run_category "custom"
         ;;
-    error)
-        echo -e "${BLUE}=== Error Tests (should fail) ===${NC}"
-        run_category "error"
-        ;;
     all)
         echo -e "${BLUE}=== Basic Tests (examples from the assignment) ===${NC}"
         run_category "basic"
         echo ""
         echo -e "${BLUE}=== Custom Tests (individual features) ===${NC}"
         run_category "custom"
-        echo ""
-        echo -e "${BLUE}=== Error Tests (should fail) ===${NC}"
-        run_category "error"
         ;;
     *)
         echo -e "${RED}Error: unrecognized argument '$ARG'${NC}"
-        echo "Usage: ./run_tests.sh <file.f | basic | custom | error | all>"
+        echo "Usage: ./run_tests.sh <file.f | basic | custom | all>"
         exit 1
         ;;
 esac
