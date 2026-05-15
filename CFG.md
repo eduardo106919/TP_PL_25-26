@@ -1,6 +1,6 @@
 # Fortran 77 CFG
 
-Context-Free Grammar do compilador PunchCard para Fortran 77.
+_Context Free Grammar_ do compilador PunchCard para Fortran 77.
 
 ```
 program : program_unit_list
@@ -20,8 +20,8 @@ subroutine_subprogram : SUBROUTINE IDENTIFIER '(' param_list ')' body END
 
 body : declaration_section statement_section
 
-declaration_section : empty
-                    | declaration_section declaration
+declaration_section : declaration_section declaration
+                    |
 
 declaration : type_spec var_list
 
@@ -40,8 +40,8 @@ var_decl : IDENTIFIER
 dim_list : expr
          | dim_list ',' expr
 
-statement_section : empty
-                  | statement_section statement
+statement_section : statement_section statement
+                  |
 
 statement : LIT_INT statement_body
           | statement_body
@@ -73,8 +73,8 @@ do_stmt : DO LIT_INT IDENTIFIER '=' expr ',' expr do_body
 
 do_body : do_inner_stmts LIT_INT CONTINUE
 
-do_inner_stmts : empty
-               | do_inner_stmts do_inner_statement
+do_inner_stmts : do_inner_stmts do_inner_statement
+               |
 
 do_inner_statement : assignment_stmt
                    | goto_stmt
@@ -110,14 +110,14 @@ return_stmt : RETURN
 
 call_stmt : CALL IDENTIFIER '(' arg_list ')'
 
-param_list : empty
-           | param_list_mult
+param_list : param_list_mult
+           |
 
 param_list_mult : IDENTIFIER
                 | param_list_mult ',' IDENTIFIER
 
-arg_list : empty
-         | arg_list_mult
+arg_list : arg_list_mult
+         |
 
 arg_list_mult : expr
               | arg_list_mult ',' expr
@@ -168,6 +168,4 @@ primary : '(' expr ')'
         | LIT_STRING | LIT_BOOLEAN
         | IDENTIFIER
         | IDENTIFIER '(' arg_list ')'
-
-empty :
 ```
