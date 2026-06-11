@@ -2,6 +2,9 @@
 
 Trabalho Prático de **Processamento de Linguagens** do ano letivo 2025/2026.
 
+> [!NOTE]
+> Nota final: **17/20**.
+
 ## 📘 Descrição Geral
 
 Este projeto consiste no desenvolvimento de um **compilador para a linguagem Fortran 77 (ANSI X3.9‑1978)**, realizado no âmbito da unidade curricular de _Processamento de Linguagens_. O objetivo central é implementar todas as fases essenciais de um compilador moderno - desde a análise do código‑fonte até à geração de código executável para a máquina virtual fornecida.
